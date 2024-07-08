@@ -36,26 +36,6 @@
           </div>
         </div>
       </div>
-      {% if not user %}
-      <div class="col-md-2 add-member-or-wrap">
-        <div class="add-member-or">
-          {{ _('or') }}
-        </div>
-      </div>
-      <div class="col-md-5">
-        <div class="form-group control-medium">
-          <label class="form-label" for="email">
-            {{ _('New User') }}
-          </label>
-          <p>
-            {{ _('If you wish to invite a new user, enter their email address.') }}
-          </p>
-          <div class="controls">
-            <input id="email" type="text" name="email" placeholder="Email address" class="form-control">
-          </div>
-        </div>
-      </div>
-      {% endif %}
     </div>
 
     {% if user and user.name == c.user and user_role == 'admin' %}

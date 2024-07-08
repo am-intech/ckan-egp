@@ -1,7 +1,7 @@
 {% set stats = h.get_site_statistics() %}
 
 <div class="module-stats">
-  <div class="card box">
+  <div class="box card-body">
     <h3>{{ _('{0} statistics').format(g.site_title) }}</h3>
     <ul>
       {% block stats_group %}

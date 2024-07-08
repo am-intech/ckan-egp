@@ -10,7 +10,7 @@ import socket
 from typing import (Container, Optional,
                     Union, Any, cast, Type)
 
-from ckan.common import config, asbool
+from ckan.common import config, asbool, g
 import sqlalchemy
 from sqlalchemy import text
 
@@ -107,6 +107,42 @@ def package_list(context: Context, data_dict: DataDict) -> ActionResult.PackageL
     ## Returns the first field in each result record
     return [r[0] for r in query.execute() or []]
 
+def package_count(context: Context, data_dict: DataDict) -> ActionResult.PackageListCount:
+    model = context["model"]
+    # _check_access('package_list', context, data_dict)
+    user = context.get("userobj", g.userobj)
+    if not user:
+        return 0
+    if user.sysadmin:
+        package_table = model.package_table
+        query = _select([_func.count(package_table.c["id"])],
+            _and_(package_table.c["state"] == "active")
+        )
+        log.info(query)
+        return query.execute().one()[0]
+
+    member_table = model.member_table
+    # user groups
+    query = _select([member_table.c["group_id"]],
+        _and_(member_table.c["table_name"] == "user",
+             member_table.c["state"] == "active",
+             member_table.c["table_id"] == user.id)
+    )
+    groups = {x[0] for x in query.execute()}
+    # groups packages
+    query = _select([member_table.c["table_id"]],
+        _and_(member_table.c["table_name"] == "package",
+              member_table.c["state"] == "active",
+              member_table.c["group_id"].in_(groups))
+    ).group_by(member_table.c["table_id"])
+    packages = {x[0] for x in query.execute()}
+
+    # collab packages
+    package_member = model.package_member_table
+    query = _select([package_member.c["package_id"]],
+                    _and_(package_member.c["user_id"] == user.id))
+    collab_packages = {x[0] for x in query.execute()}
+    return len(packages.union(collab_packages))
 
 @logic.validate(ckan.logic.schema.default_package_list_schema)
 def current_package_list_with_resources(
@@ -426,8 +462,23 @@ def _group_or_org_list(
         query = query.limit(limit)
     if offset:
         query = query.offset(offset)
+    # exclude not accessed groups or organizations
+    user = g.userobj
+    if not user:
+      return []
 
     groups = query.all()
+    if user and not user.sysadmin:
+      q = model.Session.query(model.Member).\
+        filter(model.Member.table_id == user.id).\
+        filter(model.Member.table_name == "user").\
+        filter(model.Member.state == "active")
+      user_groups = {x.group_id for x in q.all()}
+      from os import environ
+      excluded_groups = plugins.toolkit.config.get('ckanext.group_exclude_list', environ.get('CKANEXT__GROUP_EXCLUDE_LIST')) or ""
+      excluded_groups = {x.lower() for x in excluded_groups.split(",")}
+      groups = [x for x in groups if x.id in(user_groups) and x.name.lower() not in(excluded_groups)]
+    # -----------------------------------------------------------------------------------------------
 
     if all_fields:
         action = 'organization_show' if is_org else 'group_show'
@@ -442,7 +493,6 @@ def _group_or_org_list(
             group_list.append(logic.get_action(action)(context, data_dict))
     else:
         group_list = [getattr(group, ref_group_by) for group in groups]
-
     return group_list
 
 
@@ -1462,13 +1512,13 @@ def user_show(context: Context, data_dict: DataDict) -> ActionResult.UserShow:
     else:
         user_obj = None
 
-    if not user_obj:
-        raise NotFound
-
-    context['user_obj'] = user_obj
+    if user_obj:
+        context['user_obj'] = user_obj
 
     _check_access('user_show', context, data_dict)
 
+    if not user_obj:
+        raise NotFound
 
     # include private and draft datasets?
     requester = context.get('user')

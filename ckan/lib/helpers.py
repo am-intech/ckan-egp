@@ -720,7 +720,7 @@ def flash_error(message: Any, allow_html: bool = False) -> None:
         message = Markup(message)
     else:
         message = escape(message)
-    flash(message, category='alert-error')
+    flash(message, category='alert-danger')
 
 
 @core_helper
@@ -775,10 +775,12 @@ def _link_to(text: str, *args: Any, **kwargs: Any) -> Markup:
 
     icon = kwargs.pop('icon', None)
     cls = _link_class(kwargs)
+    title = kwargs.pop('title', kwargs.pop('title_', None))
     return link_to(
         _create_link_text(text, **kwargs),
         url_for(*args, **kwargs),
-        cls=cls
+        cls=cls,
+        title=title
     )
 
 
@@ -2477,11 +2479,12 @@ def featured_group_org(items: list[str], get_action: str, list_action: str,
 @core_helper
 def get_site_statistics() -> dict[str, int]:
     stats = {}
-    stats['dataset_count'] = logic.get_action('package_search')(
-        {}, {"rows": 1})['count']
+#    stats['dataset_count'] = logic.get_action('package_search')({}, {"rows": 1})['count']
+    package_count_action = logic.get_action('package_count')
+    stats['dataset_count'] = package_count_action()
     stats['group_count'] = len(logic.get_action('group_list')({}, {}))
-    stats['organization_count'] = len(
-        logic.get_action('organization_list')({}, {}))
+    stats['organization_count'] = len(logic.get_action('organization_list')({}, {}))
+    log.info(f"Get stats: {stats}")
     return stats
 
 
