@@ -162,6 +162,15 @@ def default_create_package_schema(
             'name': [ignore_missing, unicode_safe],
             'title': [ignore_missing, unicode_safe],
             '__extras': [ignore],
+        },
+        'orgs': {
+            'id': [ignore_missing, unicode_safe],
+            'name': [ignore_missing, unicode_safe],
+            'title': [ignore_missing, unicode_safe],
+            'display_name': [ignore_missing, unicode_safe],
+            'description': [ignore_missing, unicode_safe],
+            'type': [ignore_missing, unicode_safe],
+            '__extras': [ignore],
         }
     })
 

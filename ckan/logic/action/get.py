@@ -3,19 +3,22 @@
 '''API functions for searching for and getting data from CKAN.'''
 from __future__ import annotations
 
+import datetime
 import uuid
 import logging
 import json
 import socket
-from typing import (Container, Optional,
-                    Union, Any, cast, Type)
-
-from ckan.common import config, asbool, g
+from itertools import chain
+from typing import Container, Optional, Union, Any, cast, Type, Dict
+from sqlalchemy.orm import aliased
 import sqlalchemy
-from sqlalchemy import text
-
+from sqlalchemy import text, desc
+from sqlalchemy.sql.operators import ilike_op, in_op, between_op
+import re
+from dateutil import parser as dtparser
 
 import ckan
+from ckan.common import config, asbool, g
 import ckan.lib.dictization
 import ckan.logic as logic
 import ckan.logic.action
@@ -55,7 +58,9 @@ _or_ = sqlalchemy.or_
 _and_ = sqlalchemy.and_
 _func = sqlalchemy.func
 _case = sqlalchemy.case
-
+_ilike_ = ilike_op
+_in_ = in_op
+_between_ = between_op
 
 def site_read(context: Context, data_dict: Optional[DataDict]=None) -> bool:
     '''Return ``True``.
@@ -118,7 +123,6 @@ def package_count(context: Context, data_dict: DataDict) -> ActionResult.Package
         query = _select([_func.count(package_table.c["id"])],
             _and_(package_table.c["state"] == "active")
         )
-        log.info(query)
         return query.execute().one()[0]
 
     member_table = model.member_table
@@ -354,8 +358,7 @@ def package_collaborator_list_for_user(
     return out
 
 
-def _group_or_org_list(
-        context: Context, data_dict: DataDict, is_org: bool = False):
+def _group_or_org_list(context: Context, data_dict: DataDict, is_org: bool = False):
     model = context['model']
     api = context.get('api_version')
     groups = data_dict.get('groups')
@@ -369,8 +372,7 @@ def _group_or_org_list(
     if offset:
         pagination_dict['offset'] = data_dict['offset']
     if pagination_dict:
-        pagination_dict, errors = _validate(
-            data_dict, ckan.logic.schema.default_pagination_schema(), context)
+        pagination_dict, errors = _validate(data_dict, ckan.logic.schema.default_pagination_schema(), context)
         if errors:
             raise ValidationError(errors)
     sort = data_dict.get('sort') or config.get('ckan.default_group_sort')
@@ -381,8 +383,7 @@ def _group_or_org_list(
     if all_fields:
         # all_fields is really computationally expensive, so need a tight limit
         try:
-            max_limit = config.get(
-                'ckan.group_and_organization_list_all_fields_max')
+            max_limit = config.get('ckan.group_and_organization_list_all_fields_max')
         except ValueError:
             max_limit = 25
     else:
@@ -407,10 +408,7 @@ def _group_or_org_list(
     if sort.strip() in ('packages', 'package_count'):
         sort = 'package_count desc'
 
-    sort_info = _unpick_search(sort,
-                               allowed_fields=['name', 'packages',
-                                               'package_count', 'title'],
-                               total=1)
+    sort_info = _unpick_search(sort, allowed_fields=['name', 'packages', 'package_count', 'title'], total=1)
 
     if sort_info and sort_info[0][0] == 'package_count':
         query = model.Session.query(model.Group.id,
@@ -422,8 +420,7 @@ def _group_or_org_list(
                      .filter(model.Member.table_name == 'package') \
                      .filter(model.Package.state == 'active')
     else:
-        query = model.Session.query(model.Group.id,
-                                    model.Group.name)
+        query = model.Session.query(model.Group.id, model.Group.name)
 
     query = query.filter(model.Group.state == 'active')
 
@@ -431,7 +428,7 @@ def _group_or_org_list(
         # type_ignore_reason: incomplete SQLAlchemy types
         query = query.filter(model.Group.name.in_(groups))  # type: ignore
     if q:
-        q = u'%{0}%'.format(q)
+        q = '%{0}%'.format(q)
         query = query.filter(_or_(
             # type_ignore_reason: incomplete SQLAlchemy types
             model.Group.name.ilike(q),  # type: ignore
@@ -490,7 +487,9 @@ def _group_or_org_list(
                 if key not in data_dict:
                     data_dict[key] = False
 
-            group_list.append(logic.get_action(action)(context, data_dict))
+            action_show = logic.get_action(action)
+            group_item = action_show(context, data_dict)
+            group_list.append(group_item)
     else:
         group_list = [getattr(group, ref_group_by) for group in groups]
     return group_list
@@ -788,8 +787,7 @@ def organization_list_for_user(context: Context,
 
         # type_ignore_reason: incomplete SQLAlchemy types
         orgs_q = orgs_q.filter(model.Group.id.in_(group_ids))  # type: ignore
-        orgs_and_capacities = [
-            (org, group_ids_to_capacities[org.id]) for org in orgs_q.all()]
+        orgs_and_capacities = [(org, group_ids_to_capacities[org.id]) for org in orgs_q.all()]
 
     context['with_capacity'] = True
     orgs_list = model_dictize.group_list_dictize(orgs_and_capacities, context,
@@ -1060,9 +1058,7 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
         if include_plugin_data:
             context['use_cache'] = False
 
-    pkg = model.Package.get(
-        name_or_id,
-        for_update=context.get('for_update', False))
+    pkg = model.Package.get(name_or_id, for_update=context.get('for_update', False))
 
     if pkg is None:
         raise NotFound
@@ -1075,7 +1071,7 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
     include_tracking = asbool(data_dict.get('include_tracking', False))
 
     package_dict = None
-    use_cache = (context.get('use_cache', True))
+    use_cache = (context.get('use_cache', False))
     package_dict_validated = False
 
     if use_cache:
@@ -1127,8 +1123,7 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
             item.before_resource_show(resource_dict)
 
     if not package_dict_validated:
-        package_plugin = lib_plugins.lookup_package_plugin(
-            package_dict['type'])
+        package_plugin = lib_plugins.lookup_package_plugin(package_dict['type'])
         schema = context.get('schema') or package_plugin.show_package_schema()
 
         if bool(schema) and context.get('validate', True):
@@ -1138,7 +1133,6 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
 
     for item in plugins.PluginImplementations(plugins.IPackageController):
         item.after_dataset_show(context, package_dict)
-
     return package_dict
 
 
@@ -1285,7 +1279,6 @@ def _group_or_org_show(
                                              include_extras=include_extras,
                                              include_groups=include_groups,
                                              include_users=include_users,)
-
     if is_org:
         plugin_type = plugins.IOrganizationController
     else:
@@ -1305,17 +1298,14 @@ def _group_or_org_show(
 
     if include_followers:
         context = plugins.toolkit.fresh_context(context)
-        group_dict['num_followers'] = logic.get_action('group_follower_count')(
-            context,
-            {'id': group_dict['id']})
+        group_follower_count = logic.get_action('group_follower_count')
+        group_dict['num_followers'] = group_follower_count(context, {'id': group_dict['id']})
     else:
         group_dict['num_followers'] = 0
 
     if not schema:
         schema = ckan.logic.schema.default_show_group_schema()
-    group_dict, _errors = lib_plugins.plugin_validate(
-        group_plugin, context, group_dict, schema,
-        'organization_show' if is_org else 'group_show')
+    group_dict, _errors = lib_plugins.plugin_validate(group_plugin, context, group_dict, schema, 'organization_show' if is_org else 'group_show')
     return group_dict
 
 
@@ -1772,6 +1762,163 @@ def organization_autocomplete(context: Context,
 
     return _group_or_org_autocomplete(context, data_dict, is_org=True)
 
+def get_org_counters(context: Context, data_dict: DataDict) -> Dict[str, int]:
+    model = context["model"]
+    group = model.Group
+    package = model.Package
+    member = aliased(model.Member)
+    umember = aliased(model.Member)
+    package_member = model.PackageMember
+    userobj = context.get("auth_user_obj", g.userobj)
+    group_id = data_dict.get("id")
+    # compute counter of organizations packages
+    sql_query = None
+    if userobj and not userobj.is_anonymous:
+        if userobj.sysadmin:
+            sql_query = _select([group.name or _('Without org'), package.id])\
+                .select_from(package)\
+                .join(member, _and_(package.id == member.table_id, member.state == 'active', member.capacity == 'organization', member.table_name == 'package'))\
+                .join(group, _and_(group.id == member.group_id, group.state == 'active', group.type == 'organization'))\
+                .filter(_and_(package.state == 'active'))
+        else:
+            sql_query = _select([group.name or _('Without org'), package.id])\
+                .select_from(package)\
+                .join(member, _and_(package.id == member.table_id, member.state == 'active', member.capacity == 'organization'), isouter=True)\
+                .join(group, _and_(group.id == member.group_id, group.state == 'active', group.type == 'organization'), isouter=True)\
+                .filter(_and_(package.state == 'active',
+                              _or_(_in_(package.id, _select([package_member.package_id]).select_from(package_member).filter(package_member.user_id == userobj.id)),
+                                   _in_(group.id, _select([umember.group_id]).select_from(umember).filter(_and_(umember.table_name == 'user', umember.state == 'active', umember.table_id == userobj.id))),
+                                    package.private == False)
+                              )
+                        )
+    org_query = _select([group.name]).select_from(group).filter(_and_(group.is_organization == True, group.state == "active"))
+    orgs = dict(((x[0], 0) for x in org_query.execute()))
+    if sql_query is not None:
+        if group_id:
+            sql_query = sql_query.filter(group.id == group_id)
+        search_sql = data_dict.get('search_sql')
+        if search_sql is not None:
+            sql_query = sql_query.filter(search_sql)
+        # search_query = data_dict.get('q', '').lower().strip()
+        # if search_query and search_query != '*:*':
+        #     search_query = f"%{search_query}%"
+        #     sql_query = sql_query.filter(_or_(_ilike_(package.name, search_query), _ilike_(package.title, search_query), _ilike_(package.notes, search_query)))
+        sql_query = sql_query.distinct()
+        res = {}
+        for k, v in sql_query.execute():
+            value = res.get(k, 0) + 1
+            res[k] = value
+        for k, v in res.items():
+            orgs[k] = v
+    return orgs
+
+def get_group_counters(context: Context, data_dict: DataDict) -> Dict[str, int]:
+    model = context["model"]
+    group = model.Group
+    package = model.Package
+    member = aliased(model.Member)
+    umember = aliased(model.Member)
+    package_member = model.PackageMember
+    userobj = context.get("auth_user_obj", g.userobj)
+    group_id = data_dict.get("id")
+    # compute counter of organizations packages
+    sql_query = None
+    if userobj and not userobj.is_anonymous:
+        if userobj.sysadmin:
+            sql_query = _select([group.name, package.id])\
+                .select_from(package)\
+                .join(member, _and_(package.id == member.table_id, member.state == 'active', member.capacity == 'public', member.table_name == 'package'))\
+                .join(group, _and_(group.id == member.group_id, group.state == 'active', group.type == 'group'))\
+                .filter(_and_(package.state == 'active'))
+        else:
+            pmember = aliased(model.Member)
+            package_sub_query = _select(pmember.table_id).select_from(umember)\
+                .join(pmember, _and_(umember.group_id == pmember.group_id, pmember.state == 'active', pmember.table_name == 'package', pmember.capacity == 'organization'))\
+                .filter(_and_(umember.table_name == 'user', umember.state == 'active', umember.table_id == userobj.id))
+            package_member_sub_query = _select([package_member.package_id]).select_from(package_member).filter(package_member.user_id == userobj.id)
+            package_filter = _or_(_in_(package.id, package_member_sub_query), _in_(package.id, package_sub_query), package.private == False)
+            sql_query = _select([group.name, package.id])\
+                .select_from(package)\
+                .join(member, _and_(package.id == member.table_id, member.state == 'active', member.capacity == 'public'))\
+                .join(group, _and_(group.id == member.group_id, group.state == 'active', group.type == 'group'))\
+                .filter(_and_(package.state == 'active', package_filter))
+
+    group_query = _select([group.name]).select_from(group).filter(_and_(group.is_organization == False, group.state == "active"))
+    groups = dict(((x[0], 0) for x in group_query.execute()))
+    if sql_query is not None:
+        if group_id:
+            sql_query = sql_query.filter(group.id == group_id)
+
+        search_sql = data_dict.get('search_sql')
+        if search_sql is not None:
+            sql_query = sql_query.filter(search_sql)
+        # search_query = data_dict.get('q','').lower().strip()
+        # if search_query and search_query != '*:*':
+        #     search_query = f"%{search_query}%"
+        #     sql_query = sql_query.filter(_or_(_ilike_(package.name, search_query), _ilike_(package.title, search_query), _ilike_(package.notes, search_query)))
+        sql_query = sql_query.distinct()
+        res = {}
+        for k, v in sql_query.execute():
+            value = res.get(k, 0) + 1
+            res[k] = value
+        for k, v in res.items():
+            groups[k] = v
+    return groups
+
+def get_tag_counters(context: Context, data_dict: DataDict) -> Dict[str, int]:
+    model = context["model"]
+    group = model.Group
+    package = model.Package
+    member = aliased(model.Member)
+    umember = aliased(model.Member)
+    package_member = model.PackageMember
+    package_tag = model.PackageTag
+    tag = model.Tag
+    userobj = context.get("auth_user_obj", g.userobj)
+
+    # compute counter of organizations packages
+    sql_query = None
+    if userobj and not userobj.is_anonymous:
+        if userobj.sysadmin:
+            sql_query = _select([tag.name, package.id])\
+                .select_from(package)\
+                .join(package_tag, _and_(package_tag.package_id == package.id, package_tag.state == "active"))\
+                .join(tag, package_tag.tag_id == tag.id)\
+                .filter(package.state == 'active')
+        else:
+            pmember = aliased(model.Member)
+            package_sub_query = _select(pmember.table_id).select_from(umember)\
+                .join(pmember, _and_(umember.group_id == pmember.group_id, pmember.state == 'active', pmember.table_name == 'package', pmember.capacity == 'organization'))\
+                .filter(_and_(umember.table_name == 'user', umember.state == 'active', umember.table_id == userobj.id))
+            package_member_sub_query = _select([package_member.package_id]).select_from(package_member).filter(package_member.user_id == userobj.id)
+            package_filter = _or_(_in_(package.id, package_member_sub_query), _in_(package.id, package_sub_query), package.private == False)
+            sql_query = _select([tag.name, package.id])\
+                .select_from(package)\
+                .join(member, _and_(package.id == member.table_id, member.state == 'active', member.capacity == 'public'))\
+                .join(group, _and_(group.id == member.group_id, group.state == 'active', group.type == 'group')) \
+                .join(package_tag, _and_(package_tag.package_id == package.id, package_tag.state == "active")) \
+                .join(tag, package_tag.tag_id == tag.id) \
+                .filter(_and_(package.state == 'active', package_filter))
+
+    tag_query = _select([tag.name]).select_from(tag)
+    tags = dict(((x[0], 0) for x in tag_query.execute()))
+    if sql_query is not None:
+        search_sql = data_dict.get('search_sql')
+        if search_sql is not None:
+            sql_query = sql_query.filter(search_sql)
+        # search_query = data_dict.get('q','').lower().strip()
+        # if search_query and search_query != '*:*':
+        #     search_query = f"%{search_query}%"
+        #     sql_query = sql_query.filter(_or_(_ilike_(package.name, search_query), _ilike_(package.title, search_query), _ilike_(package.notes, search_query)))
+        sql_query = sql_query.distinct()
+        res = {}
+        for k, v in sql_query.execute():
+            value = res.get(k, 0) + 1
+            res[k] = value
+        for k, v in res.items():
+            tags[k] = v
+    return tags
+
 
 def package_search(context: Context, data_dict: DataDict) -> ActionResult.PackageSearch:
     '''
@@ -1909,27 +2056,13 @@ def package_search(context: Context, data_dict: DataDict) -> ActionResult.Packag
     schema = (context.get('schema') or
               ckan.logic.schema.default_package_search_schema())
     data_dict, errors = _validate(data_dict, schema, context)
-    # put the extras back into the data_dict so that the search can
-    # report needless parameters
-    data_dict.update(data_dict.get('__extras', {}))
-    data_dict.pop('__extras', None)
     if errors:
         raise ValidationError(errors)
 
     model = context['model']
     session = context['session']
-    user = context.get('user')
 
     _check_access('package_search', context, data_dict)
-
-    # Move ext_ params to extras and remove them from the root of the search
-    # params, so they don't cause and error
-    data_dict['extras'] = data_dict.get('extras', {})
-    for key in [key for key in data_dict.keys() if key.startswith('ext_')]:
-        data_dict['extras'][key] = data_dict.pop(key)
-
-    # set default search field
-    data_dict['df'] = 'text'
 
     # check if some extension needs to modify the search params
     for item in plugins.PluginImplementations(plugins.IPackageController):
@@ -1947,80 +2080,131 @@ def package_search(context: Context, data_dict: DataDict) -> ActionResult.Packag
     count = 0
 
     if not abort:
-        if asbool(data_dict.get('use_default_schema')):
-            data_source = 'data_dict'
-        else:
-            data_source = 'validated_data_dict'
-        data_dict.pop('use_default_schema', None)
+        group = model.Group
+        member = aliased(model.Member)
+        umember = aliased(model.Member)
+        smember = aliased(model.Member)
+        package = model.Package
+        tag = model.Tag
+        package_member = model.PackageMember
+        package_tags = model.PackageTag
+        userobj = context.get('auth_user_obj', g.userobj)
 
-        result_fl = data_dict.get('fl')
-        if not result_fl:
-            data_dict['fl'] = 'id {0}'.format(data_source)
-        else:
-            data_dict['fl'] = ' '.join(result_fl)
+        fq = data_dict.get('fq')
+        filter_string = next((k for k in fq), '') if isinstance(fq, Dict) else fq
+        count_query = _select([_func.count(package.id)]).select_from(package)
+        sql_query = _select([package.id]).select_from(package)
+        if filter_string:
+            PATTERN = re.compile(r'''((?:[^;"']|"[^"]*"|'[^']*')+)''')
+            multi_filters = PATTERN.split(filter_string)
+            filters = list(chain.from_iterable((p for p in (x.split('" ') for x in multi_filters if x.strip()))))
+            filters = [tuple(x.strip().split(":")) for x in filters if x.strip() and ":" in x]
+            filters = [(k, v.strip('"')) for k,v in filters]
+            groups = dict(x for x in _select([group.name, group.id]).select_from(group).filter(_and_(group.state == 'active')).execute())
+            tags = dict(x for x in _select([tag.name, tag.id]).select_from(tag).execute())
 
-        data_dict.setdefault('fq', '')
+            filtered_orgs = {groups[v.strip('"')] for k, v in filters if k in ["groups", "+groups"]}
+            filtered_orgs = filtered_orgs | {v.strip('"') for k, v in filters if k in ["+owner_org", "owner_org"]}
+            if filtered_orgs:
+                wq = package.id.in_(
+                    _select([member.table_id])
+                    .filter(_and_(member.group_id.in_(filtered_orgs), member.state == "active", member.capacity == "organization", member.table_name == "package"))
+                )
+                data_dict["filtered_orgs"] = filtered_orgs
+                sql_query = sql_query.filter(wq)
+                count_query = count_query.filter(wq)
+            filtered_groups = {groups[v.strip('"')] for k, v in filters if k in ["organization"]}
+            if filtered_groups:
+                wq = package.id.in_(
+                    _select([member.table_id])
+                    .filter(_and_(member.group_id.in_(filtered_groups), member.state == "active", member.capacity == "public", member.table_name == "package"))
+                )
+                data_dict["filtered_groups"] = filtered_groups
+                sql_query = sql_query.filter(wq)
+                count_query = count_query.filter(wq)
+            filtered_tags = {tags[v.strip('"')] for k, v in filters if k == "tags"}
+            if filtered_tags:
+                data_dict["filtered_tags"] = filtered_tags
+                sql_query = sql_query.filter(package.id.in_(_select([package_tags.package_id]).select_from(package_tags).filter(_and_(package_tags.state == "active", package_tags.tag_id.in_(filtered_tags)))))
+                count_query = count_query.filter(package.id.in_(_select([package_tags.package_id]).select_from(package_tags).filter(_and_(package_tags.state == "active", package_tags.tag_id.in_(filtered_tags)))))
 
-        # Remove before these hit solr FIXME: whitelist instead
-        include_private = asbool(data_dict.pop('include_private', False))
-        include_drafts = asbool(data_dict.pop('include_drafts', False))
-        include_deleted = asbool(data_dict.pop('include_deleted', False))
+        search_query = data_dict.get('q', '').lower().strip()
+        search_sql = None
+        if search_query:
+            PATTERN = re.compile(r"(metadata_created|metadata_modified):\[(.+)\]")
+            m = PATTERN.match(search_query)
+            if m:
+                field_name, query = m.groups()
+                fields = {"metadata_modified": package.metadata_modified, "metadata_created": package.metadata_created}
+                field = fields.get(field_name)
+                if field:
+                    begin, end = [dtparser.parse(x) for x in query.upper().split(' TO ')][0:2]
+                    search_sql = _between_(field, begin, end)
+                    count_query = count_query.filter(search_sql)
+                    sql_query = sql_query.filter(search_sql)
 
-        if not include_private:
-            data_dict['fq'] = '+capacity:public ' + data_dict['fq']
+            else:
+                if search_query != '*:*':
+                    search_query = f"%{search_query}%"
+                    search_sql = _or_(_ilike_(package.name, search_query), _ilike_(package.title, search_query), _ilike_(package.notes, search_query))
+                    count_query = count_query.filter(search_sql)
+                    sql_query = sql_query.filter(search_sql)
 
-        if '+state' not in data_dict['fq']:
-            states = ['active']
-            if include_drafts:
-                states.append('draft')
-            if include_deleted:
-                states.append('deleted')
-            data_dict['fq'] += ' +state:({})'.format(' OR '.join(states))
+        if not userobj or userobj.is_anonymous:
+            sql_query = sql_query.filter(package.private == False)
+            count_query = count_query.filter(package.private == False)
 
-        # Pop these ones as Solr does not need them
-        extras = data_dict.pop('extras', None)
+        if userobj and userobj.is_authenticated and not userobj.sysadmin:
+            sec_query = _select([smember.table_id]).select_from(smember)\
+                .join(umember, _and_(umember.group_id == smember.group_id, umember.table_name == "user", umember.table_id == userobj.id, umember.state == "active", smember.state == "active", smember.table_name == "package", smember.capacity == "organization"))\
+                .group_by(smember.table_id)
+            sec_pmember_query = _select([package_member.package_id]).select_from(package_member).where(package_member.user_id == userobj.id)
+            union = sec_query.union(sec_pmember_query)
+            sql_query = sql_query.filter(_or_(package.private == False, package.id.in_(union)))
+            count_query = count_query.filter(_or_(package.private == False, package.id.in_(union)))
 
-        # enforce permission filter based on user
-        if context.get('ignore_auth') or (user and authz.is_sysadmin(user)):
-            labels = None
-        else:
-            labels = lib_plugins.get_permission_labels(
-                ).get_user_dataset_labels(context['auth_user_obj'])
+        sql_query = sql_query.filter(package.state == "active")
+        count_query = count_query.filter(package.state == "active")
 
-        query = search.query_for(model.Package)
-        query.run(data_dict, permission_labels=labels)
+        order_by = data_dict.get('sort')
+        if order_by:
+            ordermap = {
+                "title_string": package.title,
+                "metadata_modified": package.metadata_modified
+            }
+            orders = order_by.split(",")
+            lambdas = []
+            for order in [x for x in orders if x]:
+                key, narrow = order.strip().lower().split(" ")
+                field = ordermap.get(key)
+                if field:
+                    lambdas.append(desc(field) if narrow == "desc" else field)
+            if lambdas:
+                sql_query = sql_query.order_by(*lambdas)
 
-        # Add them back so extensions can use them on after_search
-        data_dict['extras'] = extras
+        offset = data_dict.get("start", 0)
+        if offset:
+            sql_query = sql_query.offset(offset)
 
-        if result_fl:
-            for package in query.results:
-                if isinstance(package, str):
-                    package = {result_fl[0]: package}
-                extras = cast("dict[str, Any]", package.pop('extras', {}))
-                package.update(extras)
-                results.append(package)
-        else:
-            for package in query.results:
-                # get the package object
-                package_dict = package.get(data_source)
-                ## use data in search index if there
-                if package_dict:
-                    # the package_dict still needs translating when being viewed
-                    package_dict = json.loads(package_dict)
-                    if context.get('for_view'):
-                        for item in plugins.PluginImplementations(
-                                plugins.IPackageController):
-                            package_dict = item.before_dataset_view(
-                                package_dict)
-                    results.append(package_dict)
-                else:
-                    log.error('No package_dict is coming from solr for package '
-                              'id %s', package['id'])
+        limit = data_dict.get("rows", 5)
+        if limit:
+            sql_query = sql_query.limit(limit)
 
-        count = query.count
-        facets = query.facets
+        count = next(iter(count_query.execute()), [])[0]
 
+        for rec in sql_query.execute():
+            package_id = rec[0]
+            package_dict = package_show(context, {'id': package_id})
+            if context.get('for_view'):
+                for item in plugins.PluginImplementations(plugins.IPackageController):
+                    package_dict = item.before_dataset_view(package_dict)
+            results.append(package_dict)
+
+        data_dict['search_sql'] = search_sql
+        facets["organization"] = get_group_counters(context, data_dict)
+        facets["groups"] = get_org_counters(context, data_dict)
+        facets["tags"] = get_tag_counters(context, data_dict)
+    # end compute
     search_results: dict[str, Any] = {
         'count': count,
         'facets': facets,
@@ -2056,12 +2240,6 @@ def package_search(context: Context, data_dict: DataDict) -> ActionResult.Packag
                 display_name = display_name \
                     if display_name and display_name.strip() else key_
                 new_facet_dict['display_name'] = display_name
-            elif key == 'license_id':
-                license = model.Package.get_license_register().get(key_)
-                if license:
-                    new_facet_dict['display_name'] = license.title
-                else:
-                    new_facet_dict['display_name'] = key_
             else:
                 new_facet_dict['display_name'] = key_
             new_facet_dict['count'] = value_
@@ -2071,14 +2249,6 @@ def package_search(context: Context, data_dict: DataDict) -> ActionResult.Packag
     # check if some extension needs to modify the search results
     for item in plugins.PluginImplementations(plugins.IPackageController):
         search_results = item.after_dataset_search(search_results, data_dict)
-
-    # After extensions have had a chance to modify the facets, sort them by
-    # display name.
-    for facet in search_results['search_facets']:
-        search_results['search_facets'][facet]['items'] = sorted(
-            search_results['search_facets'][facet]['items'],
-            key=lambda facet: facet['display_name'], reverse=True)
-
     return search_results
 
 

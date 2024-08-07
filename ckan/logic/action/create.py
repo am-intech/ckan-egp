@@ -219,9 +219,19 @@ def package_create(
     context_org_update = context.copy()
     context_org_update['ignore_auth'] = True
     context_org_update['defer_commit'] = True
-    _get_action('package_owner_org_update')(context_org_update,
-                                            {'id': pkg.id,
-                                             'organization_id': pkg.owner_org})
+    package_owner_org_update = _get_action('package_owner_org_update')
+    package_owner_org_update(context_org_update,
+           {'id': pkg.id,
+            'organization_id': pkg.owner_org})
+    # create member for organization access
+    package_org = model.Member()
+    package_org.group_id = pkg.owner_org
+    package_org.table_id = pkg.id
+    package_org.state = 'active'
+    package_org.table_name = 'package'
+    package_org.capacity = 'organization'
+    package_org.commit()
+    # end create member
 
     for item in plugins.PluginImplementations(plugins.IPackageController):
         item.create(pkg)
@@ -625,7 +635,10 @@ def member_create(context: Context,
         filter(model.Member.table_name == obj_type).\
         filter(model.Member.table_id == obj.id).\
         filter(model.Member.group_id == group.id).\
-        filter(model.Member.state == 'active').first()
+        order_by(
+            # type_ignore_reason: incomplete SQLAlchemy types
+            model.Member.state.asc()  # type: ignore
+        ).first()
     if member:
         user_obj = model.User.get(user)
         if user_obj and member.table_name == u'user' and \
@@ -634,6 +647,8 @@ def member_create(context: Context,
                 capacity != u'admin':
             raise NotAuthorized("Administrators cannot revoke their "
                                 "own admin status")
+        if member.state != 'active':
+            member.state = 'active'
     else:
         member = model.Member(table_name=obj_type,
                               table_id=obj.id,
@@ -1097,7 +1112,9 @@ def user_invite(context: Context,
 
     data['state'] = model.State.PENDING
     user_dict = _get_action('user_create')(
-        cast(Context, dict(context, schema=invite_schema)),
+        cast(
+            Context,
+            dict(context, schema=invite_schema, ignore_auth=True)),
         data)
     user = model.User.get(user_dict['id'])
     assert user

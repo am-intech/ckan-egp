@@ -10,6 +10,7 @@ import datetime
 from typing import Any, Callable, Optional, cast, Union
 
 from flask import Blueprint, make_response
+from flask import abort as flask_abort
 
 from werkzeug.exceptions import BadRequest
 from werkzeug.datastructures import MultiDict
@@ -29,10 +30,10 @@ from ckan.types import Context, Response, ActionResult
 log = logging.getLogger(__name__)
 
 CONTENT_TYPES = {
-    u'text': u'text/plain;charset=utf-8',
-    u'html': u'text/html;charset=utf-8',
-    u'json': u'application/json;charset=utf-8',
-    u'javascript': u'application/javascript;charset=utf-8',
+    'text': u'text/plain;charset=utf-8',
+    'html': u'text/html;charset=utf-8',
+    'json': u'application/json;charset=utf-8',
+    'javascript': u'application/javascript;charset=utf-8',
 }
 
 API_REST_DEFAULT_VERSION = 1
@@ -41,6 +42,11 @@ API_DEFAULT_VERSION = 3
 API_MAX_VERSION = 3
 
 api = Blueprint(u'api', __name__, url_prefix=u'/api')
+
+@api.before_request
+def before_request() -> None:
+    if not current_user or current_user.is_anonymous:
+        flask_abort(403, _('Not authorized to see this page'))
 
 
 def _json_serial(obj: Any):

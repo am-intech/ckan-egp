@@ -11,7 +11,7 @@ import ckan.model as model
 import ckan.logic as logic
 import ckan.lib.base as base
 import ckan.lib.search as search
-import ckan.lib.helpers as h
+from ckan.lib.helpers import helper_functions as h
 
 from ckan.common import g, config, current_user, _
 from ckan.types import Context, Response
@@ -28,71 +28,54 @@ def before_request() -> None:
     u'''set context and check authorization'''
     try:
         context = cast(Context, {
-            u'model': model,
-            u'user': current_user.name,
-            u'auth_user_obj': current_user})
-        logic.check_access(u'site_read', context)
+            'model': model,
+            'user': current_user.name,
+            'auth_user_obj': current_user})
+        logic.check_access('site_read', context)
     except logic.NotAuthorized:
         abort(403)
 
 
 def index() -> str:
     u'''display home page'''
-    try:
-        context = cast(Context, {
-            u'model': model,
-            u'session': model.Session,
-            u'user': current_user.name,
-            u'auth_user_obj': current_user
-            }
-        )
-
-        data_dict: dict[str, Any] = {
-            u'q': u'*:*',
-            u'facet.field': h.facets(),
-            u'rows': 4,
-            u'start': 0,
-            u'sort': u'view_recent desc',
-            u'fq': u'capacity:"public"'}
-        query = logic.get_action(u'package_search')(context, data_dict)
-        g.package_count = query['count']
-        g.datasets = query['results']
-
-        org_label = h.humanize_entity_type(
-            u'organization',
-            h.default_group_type(u'organization'),
-            u'facet label') or _(u'Organizations')
-
-        group_label = h.humanize_entity_type(
-            u'group',
-            h.default_group_type(u'group'),
-            u'facet label') or _(u'Groups')
-
-        g.facet_titles = {
-            u'organization': org_label,
-            u'groups': group_label,
-            u'tags': _(u'Tags'),
-            u'res_format': _(u'Formats'),
-            u'license': _(u'Licenses'),
+    extra_vars: dict[str, Any] = {}
+    context = cast(Context, {
+        'model': model,
+        'session': model.Session,
+        'user': current_user.name,
+        'auth_user_obj': current_user
         }
+    )
 
-    except search.SearchError:
-        g.package_count = 0
+    data_dict: dict[str, Any] = {
+        'q': u'*:*',
+        'facet.field': h.facets(),
+        'rows': 4,
+        'start': 0,
+        'sort': 'view_recent desc',
+        'fq': 'capacity:"public"'}
+    package_search = logic.get_action('package_search')
+    query = package_search(context, data_dict)
+    g.package_count = query['count']
+    g.datasets = query['results']
+
+    org_label = h.humanize_entity_type('organization', h.default_group_type('organization'), 'facet label') or _('Organizations')
+
+    group_label = h.humanize_entity_type('group', h.default_group_type('group'), 'facet label') or _('Groups')
+
+    g.facet_titles = {
+        'organization': org_label,
+        'groups': group_label,
+        'tags': _('Tags'),
+    }
+    extra_vars['search_facets'] = query['search_facets']
 
     if current_user.is_authenticated and not current_user.email:
         url = h.url_for('user.edit')
-        msg = _(u'Please <a href="%s">update your profile</a>'
-                u' and add your email address. ') % url + \
-            _(u'%s uses your email address'
-                u' if you need to reset your password.') \
-            % config.get(u'ckan.site_title')
+        msg = _('Please <a href="%s">update your profile</a> and add your email address. ') % url + \
+            _('%s uses your email address if you need to reset your password.') % config.get('ckan.site_title')
         h.flash_notice(msg, allow_html=True)
-    return base.render(u'home/index.html', extra_vars={})
-
-
-def about() -> str:
-    u''' display about page'''
-    return base.render(u'home/about.html', extra_vars={})
+    return base.render('home/index.html', extra_vars=extra_vars)
 
 
 def robots_txt() -> Response:
@@ -113,9 +96,8 @@ def redirect_locale(target_locale: str, path: Optional[str] = None) -> Any:
 
 
 util_rules: List[Tuple[str, Any]] = [
-    (u'/', index),
-    (u'/about', about),
-    (u'/robots.txt', robots_txt)
+    ('/', index),
+    ('/robots.txt', robots_txt)
 ]
 for rule, view_func in util_rules:
     home.add_url_rule(rule, view_func=view_func)

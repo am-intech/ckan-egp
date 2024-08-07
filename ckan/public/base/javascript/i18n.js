@@ -46,7 +46,7 @@ this.ckan = this.ckan || {};
 
 (function (ckan, jQuery, Jed) {
   // See: http://slexaxton.github.com/Jed/
-  var domain = {
+  const domain = {
     "": {
       "domain": "ckan",
       "lang": "en",
@@ -54,7 +54,7 @@ this.ckan = this.ckan || {};
     }
   };
 
-  var jed = new Jed({
+  const jed = new Jed({
     domain: 'ckan',
     locale_data: {
       ckan: domain
@@ -75,7 +75,7 @@ this.ckan = this.ckan || {};
    * Internal function to load a translation.
    */
   ckan.i18n.load = function (data) {
-    if (data && data['']) {
+    if (data && data[""]) {
       // Extend our default domain data with the new keys.
       jQuery.extend(domain, data);;
     }

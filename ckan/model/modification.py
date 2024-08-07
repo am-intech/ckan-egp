@@ -25,6 +25,7 @@ class DomainObjectModificationExtension(plugins.SingletonPlugin):
         self.notify_observers(session, self.notify)
 
     def notify_observers(self, session: Any, method: Any):
+        return
         session.flush()
         if not hasattr(session, '_object_cache'):
             return
@@ -47,7 +48,6 @@ class DomainObjectModificationExtension(plugins.SingletonPlugin):
                 for item in plugins.PluginImplementations(plugins.IResourceUrlChange):
                     item.notify(obj)
 
-
         changed_pkgs = set()
         new_pkg_ids = [obj.id for obj in new if isinstance(obj, model.Package)]
         for obj in changed:
@@ -55,18 +55,19 @@ class DomainObjectModificationExtension(plugins.SingletonPlugin):
                 changed_pkgs.add(obj)
 
         for obj in new | changed | deleted:
+            # disable notify if obj is member to organization
+            if isinstance(obj, model.Member) and obj.capacity == 'organization':
+                continue
             if not isinstance(obj, model.Package):
                 try:
                     changed_pkgs.update(obj.related_packages())
                 except AttributeError:
                     continue
-
         for obj in changed_pkgs:
             method(obj, model.DomainObjectOperation.changed)
 
     def notify(self, entity: Any, operation: Any):
-        for observer in plugins.PluginImplementations(
-                plugins.IDomainObjectModification):
+        for observer in plugins.PluginImplementations(plugins.IDomainObjectModification):
             try:
                 observer.notify(entity, operation)
             except SearchIndexError as search_error:

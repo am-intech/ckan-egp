@@ -1,14 +1,18 @@
+/**
+ * @preserve jed.js https://github.com/SlexAxton/Jed
+ */
 /*
-jed.js
-v0.5.0beta
-
-https://github.com/SlexAxton/Jed
 -----------
 A gettext compatible i18n library for modern JavaScript Applications
 
 by Alex Sexton - AlexSexton [at] gmail - @SlexAxton
-WTFPL license for use
-Dojo CLA for contributions
+
+MIT License
+
+A jQuery Foundation project - requires CLA to contribute -
+https://contribute.jquery.org/CLA/
+
+
 
 Jed offers the entire applicable GNU gettext spec'd set of
 functions, but also offers some nicer wrappers around them.
@@ -91,7 +95,9 @@ in order to offer easy upgrades -- jsgettext.berlios.de
         }
       },
       // The default domain if one is missing
-      "domain" : "messages"
+      "domain" : "messages",
+      // enable debug mode to log untranslated strings to the console
+      "debug" : false
     };
 
     // Mix in the sent options with the default options
@@ -99,7 +105,7 @@ in order to offer easy upgrades -- jsgettext.berlios.de
     this.textdomain( this.options.domain );
 
     if ( options.domain && ! this.options.locale_data[ this.options.domain ] ) {
-      throw new Error('Text domain set to non-existent domain: `' + domain + '`');
+      throw new Error('Text domain set to non-existent domain: `' + options.domain + '`');
     }
   };
 
@@ -136,7 +142,7 @@ in order to offer easy upgrades -- jsgettext.berlios.de
     },
     fetch : function ( sArr ) {
       if ( {}.toString.call( sArr ) != '[object Array]' ) {
-        sArr = [].slice.call(arguments);
+        sArr = [].slice.call(arguments, 0);
       }
       return ( sArr && sArr.length ? Jed.sprintf : function(x){ return x; } )(
         this._i18n.dcnpgettext(this._domain, this._context, this._key, this._pkey, this._val),
@@ -221,9 +227,6 @@ in order to offer easy upgrades -- jsgettext.berlios.de
       // isn't explicitly passed in
       domain = domain || this._textdomain;
 
-      // Default the value to the singular case
-      val = typeof val == 'undefined' ? 1 : val;
-
       var fallback;
 
       // Handle special cases
@@ -257,27 +260,33 @@ in order to offer easy upgrades -- jsgettext.berlios.de
         throw new Error('No translation key found.');
       }
 
-      // Handle invalid numbers, but try casting strings for good measure
-      if ( typeof val != 'number' ) {
-        try {
-          val = parseInt( val, 10 );
-        }
-        catch ( e ) {
-          throw new Error('Error parsing the value.');
-        }
-
-        if ( isNaN( val ) ) {
-          throw new Error('The number that was passed in is not a number.');
-        }
-      }
-
       var key  = context ? context + Jed.context_delimiter + singular_key : singular_key,
           locale_data = this.options.locale_data,
           dict = locale_data[ domain ],
-          defaultPF = this.defaults.locale_data.messages[""].plural_forms,
-          val_idx = getPluralFormFunc( dict[ "" ].plural_forms )( val ) + 1,
+          defaultConf = (locale_data.messages || this.defaults.locale_data.messages)[""],
+          pluralForms = dict[""].plural_forms || dict[""]["Plural-Forms"] || dict[""]["plural-forms"] || defaultConf.plural_forms || defaultConf["Plural-Forms"] || defaultConf["plural-forms"],
           val_list,
           res;
+
+      var val_idx;
+      if (val === undefined) {
+        // No value passed in; assume singular key lookup.
+        val_idx = 0;
+
+      } else {
+        // Value has been passed in; use plural-forms calculations.
+
+        // Handle invalid numbers, but try casting strings for good measure
+        if ( typeof val != 'number' ) {
+          val = parseInt( val, 10 );
+
+          if ( isNaN( val ) ) {
+            throw new Error('The number that was passed in is not a number.');
+          }
+        }
+
+        val_idx = getPluralFormFunc(pluralForms)(val);
+      }
 
       // Throw an error if a domain isn't found
       if ( ! dict ) {
@@ -288,17 +297,25 @@ in order to offer easy upgrades -- jsgettext.berlios.de
 
       // If there is no match, then revert back to
       // english style singular/plural with the keys passed in.
-      if ( ! val_list || val_idx >= val_list.length ) {
-        res = [ null, singular_key, plural_key ];
-        return res[ getPluralFormFunc()( val ) + 1 ];
+      if ( ! val_list || val_idx > val_list.length ) {
+        if (this.options.missing_key_callback) {
+          this.options.missing_key_callback(key, domain);
+        }
+        res = [ singular_key, plural_key ];
+
+        // collect untranslated strings
+        if (this.options.debug===true) {
+          console.log(res[ getPluralFormFunc(pluralForms)( val ) ]);
+        }
+        return res[ getPluralFormFunc()( val ) ];
       }
 
       res = val_list[ val_idx ];
 
       // This includes empty strings on purpose
       if ( ! res  ) {
-        res = [ null, singular_key, plural_key ];
-        return res[ getPluralFormFunc()( val ) + 1 ];
+        res = [ singular_key, plural_key ];
+        return res[ getPluralFormFunc()( val ) ];
       }
       return res;
     }
@@ -558,17 +575,23 @@ in order to offer easy upgrades -- jsgettext.berlios.de
     };
   };
 
+  Jed.PF.regexps = {
+    TRIM_BEG: /^\s\s*/,
+    TRIM_END: /\s\s*$/,
+    HAS_SEMICOLON: /;\s*$/,
+    NPLURALS: /nplurals\=(\d+);/,
+    PLURAL: /plural\=(.*);/
+  };
+
   Jed.PF.extractPluralExpr = function ( p ) {
     // trim first
-    p = p.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+    p = p.replace(Jed.PF.regexps.TRIM_BEG, '').replace(Jed.PF.regexps.TRIM_END, '');
 
-    if (! /;\s*$/.test(p)) {
+    if (! Jed.PF.regexps.HAS_SEMICOLON.test(p)) {
       p = p.concat(';');
     }
 
-    var nplurals_re = /nplurals\=(\d+);/,
-        plural_re = /plural\=(.*);/,
-        nplurals_matches = p.match( nplurals_re ),
+    var nplurals_matches = p.match( Jed.PF.regexps.NPLURALS ),
         res = {},
         plural_matches;
 
@@ -581,8 +604,8 @@ in order to offer easy upgrades -- jsgettext.berlios.de
     }
 
     // remove that data to get to the formula
-    p = p.replace( nplurals_re, "" );
-    plural_matches = p.match( plural_re );
+    p = p.replace( Jed.PF.regexps.NPLURALS, "" );
+    plural_matches = p.match( Jed.PF.regexps.PLURAL );
 
     if (!( plural_matches && plural_matches.length > 1 ) ) {
       throw new Error('`plural` expression not found: ' + p);
@@ -602,15 +625,15 @@ performAction: function anonymous(yytext,yyleng,yylineno,yy,yystate,$$,_$) {
 
 var $0 = $$.length - 1;
 switch (yystate) {
-case 1: return { type : 'GROUP', expr: $$[$0-1] }; 
+case 1: return { type : 'GROUP', expr: $$[$0-1] };
 break;
-case 2:this.$ = { type: 'TERNARY', expr: $$[$0-4], truthy : $$[$0-2], falsey: $$[$0] }; 
+case 2:this.$ = { type: 'TERNARY', expr: $$[$0-4], truthy : $$[$0-2], falsey: $$[$0] };
 break;
 case 3:this.$ = { type: "OR", left: $$[$0-2], right: $$[$0] };
 break;
 case 4:this.$ = { type: "AND", left: $$[$0-2], right: $$[$0] };
 break;
-case 5:this.$ = { type: 'LT', left: $$[$0-2], right: $$[$0] }; 
+case 5:this.$ = { type: 'LT', left: $$[$0-2], right: $$[$0] };
 break;
 case 6:this.$ = { type: 'LTE', left: $$[$0-2], right: $$[$0] };
 break;
@@ -624,11 +647,11 @@ case 10:this.$ = { type: 'EQ', left: $$[$0-2], right: $$[$0] };
 break;
 case 11:this.$ = { type: 'MOD', left: $$[$0-2], right: $$[$0] };
 break;
-case 12:this.$ = { type: 'GROUP', expr: $$[$0-1] }; 
+case 12:this.$ = { type: 'GROUP', expr: $$[$0-1] };
 break;
-case 13:this.$ = { type: 'VAR' }; 
+case 13:this.$ = { type: 'VAR' };
 break;
-case 14:this.$ = { type: 'NUM', val: Number(yytext) }; 
+case 14:this.$ = { type: 'NUM', val: Number(yytext) };
 break;
 }
 },
@@ -914,7 +937,7 @@ next:function () {
         if (this._input === "") {
             return this.EOF;
         } else {
-            this.parseError('Lexical error on line '+(this.yylineno+1)+'. Unrecognized text.\n'+this.showPosition(), 
+            this.parseError('Lexical error on line '+(this.yylineno+1)+'. Unrecognized text.\n'+this.showPosition(),
                     {text: "", token: null, line: this.yylineno});
         }
     },
@@ -943,7 +966,7 @@ pushState:function begin(condition) {
     }});
 lexer.performAction = function anonymous(yy,yy_,$avoiding_name_collisions,YY_START) {
 
-var YYSTATE=YY_START
+var YYSTATE=YY_START;
 switch($avoiding_name_collisions) {
 case 0:/* skip whitespace */
 break;
@@ -999,7 +1022,7 @@ return parser;
   }
   else {
     if (typeof define === 'function' && define.amd) {
-      define('jed', function() {
+      define(function() {
         return Jed;
       });
     }

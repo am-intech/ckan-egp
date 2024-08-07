@@ -38,26 +38,6 @@
           </div>
         </div>
       </div>
-      {% if not user %}
-      <div class="col-md-2 add-member-or-wrap">
-        <div class="add-member-or">
-          {{ _('or') }}
-        </div>
-      </div>
-      <div class="col-md-5">
-        <div class="form-group control-medium">
-          <label class="form-label" for="email">
-            {{ _('New User') }}
-          </label>
-          <p>
-            {{ _('If you wish to invite a new user, enter their email address.') }}
-          </p>
-          <div class="controls">
-            <input id="email" type="email" name="email" class="form-control" placeholder="{{ _('Email address') }}" >
-          </div>
-        </div>
-      </div>
-      {% endif %}
     </div>
 
     {% if user and user.name == c.user and user_role == 'admin' %}
@@ -95,10 +75,10 @@
   <div class="module-content">
     {% trans %}
       <p><strong>Admin:</strong> Can add/edit and delete datasets, as well as
-        manage organization members.</p>
+        manage members.</p>
       <p><strong>Editor:</strong> Can add and edit datasets, but not manage
-        organization members.</p>
-      <p><strong>Member:</strong> Can view the organization's private
+        members.</p>
+      <p><strong>Member:</strong> Can view the group's private
         datasets, but not add new datasets.</p>
     {% endtrans %}
   </div>

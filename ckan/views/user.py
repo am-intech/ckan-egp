@@ -13,7 +13,8 @@ import dominate.tags as dom_tags
 import ckan.lib.authenticator as authenticator
 import ckan.lib.base as base
 import ckan.lib.captcha as captcha
-import ckan.lib.helpers as h
+from ckan.lib.helpers import helper_functions as h
+from ckan.lib.helpers import Page
 import ckan.lib.mailer as mailer
 import ckan.lib.maintain as maintain
 import ckan.lib.navl.dictization_functions as dictization_functions
@@ -23,7 +24,8 @@ import ckan.model as model
 import ckan.plugins as plugins
 from ckan import authz
 from ckan.common import (
-    _, config, g, request, current_user, login_user, logout_user, session
+    _, config, g, request, current_user, login_user, logout_user, session,
+    repr_untrusted
 )
 from ckan.types import Context, Schema, Response
 from ckan.lib import signals
@@ -72,10 +74,10 @@ def _extra_template_variables(context: Context,
     is_myself = user_dict[u'name'] == current_user.name
     about_formatted = h.render_markdown(user_dict[u'about'])
     extra: dict[str, Any] = {
-        u'is_sysadmin': is_sysadmin,
-        u'user_dict': user_dict,
-        u'is_myself': is_myself,
-        u'about_formatted': about_formatted
+        'is_sysadmin': is_sysadmin,
+        'user_dict': user_dict,
+        'is_myself': is_myself,
+        'about_formatted': about_formatted
     }
     return extra
 
@@ -83,20 +85,18 @@ def _extra_template_variables(context: Context,
 @user.before_request
 def before_request() -> None:
     try:
+        if not current_user or current_user.is_anonymous:
+            raise logic.NotAuthorized()
         context = cast(Context, {
             "model": model,
             "user": current_user.name,
             "auth_user_obj": current_user
         })
-        logic.check_access(u'site_read', context)
+        logic.check_access('site_read', context)
     except logic.NotAuthorized:
         action = plugins.toolkit.get_endpoint()[1]
-        if action not in (
-                u'login',
-                u'request_reset',
-                u'perform_reset',
-        ):
-            base.abort(403, _(u'Not authorized to see this page'))
+        if action not in ('login', 'request_reset', 'perform_reset'):
+            base.abort(403, _('Not authorized to see this page'))
 
 
 def index():
@@ -106,24 +106,25 @@ def index():
     default_limit: int = config.get('ckan.user_list_limit')
     limit = int(request.args.get('limit', default_limit))
     context = cast(Context, {
-        u'return_query': True,
-        u'user': current_user.name,
-        u'auth_user_obj': current_user
+        'return_query': True,
+        'user': current_user.name,
+        'auth_user_obj': current_user
     })
 
     data_dict = {
-        u'q': q,
-        u'order_by': order_by
+        'q': q,
+        'order_by': order_by
     }
 
     try:
-        logic.check_access(u'user_list', context, data_dict)
+        logic.check_access('user_list', context, data_dict)
     except logic.NotAuthorized:
-        base.abort(403, _(u'Not authorized to see this page'))
+        base.abort(403, _('Not authorized to see this page'))
 
-    users_list = logic.get_action(u'user_list')(context, data_dict)
+    user_list = logic.get_action('user_list')
+    users_list = user_list(context, data_dict)
 
-    page = h.Page(
+    page = Page(
         collection=users_list,
         page=page_number,
         url=h.pager_url,
@@ -131,8 +132,11 @@ def index():
         items_per_page=limit)
 
     extra_vars: dict[str, Any] = {
-        u'page': page, u'q': q, u'order_by': order_by}
-    return base.render(u'user/list.html', extra_vars)
+        'page': page,
+        'q': q,
+        'order_by': order_by
+    }
+    return base.render('user/list.html', extra_vars)
 
 
 def me() -> Response:
@@ -251,155 +255,6 @@ def api_token_revoke(id: str, jti: str) -> Response:
     except logic.NotAuthorized:
         base.abort(403, _(u'Unauthorized to revoke API tokens.'))
     return h.redirect_to(u'user.api_tokens', id=id)
-
-
-class EditView(MethodView):
-    def _prepare(self, id: Optional[str]) -> tuple[Context, str]:
-        context = cast(Context, {
-            u'save': u'save' in request.form,
-            u'schema': _edit_form_to_db_schema(),
-            u'model': model,
-            u'session': model.Session,
-            u'user': current_user.name,
-            u'auth_user_obj': current_user
-        })
-        if id is None:
-            if current_user.is_authenticated:
-                id = current_user.id  # type: ignore
-            else:
-                base.abort(400, _(u'No user specified'))
-        assert id
-        data_dict = {u'id': id}
-
-        try:
-            logic.check_access(u'user_update', context, data_dict)
-        except logic.NotAuthorized:
-            base.abort(403, _(u'Unauthorized to edit a user.'))
-        return context, id
-
-    def post(self, id: Optional[str] = None) -> Union[Response, str]:
-        context, id = self._prepare(id)
-        if not context[u'save']:
-            return self.get(id)
-
-        try:
-            data_dict = logic.clean_dict(
-                dictization_functions.unflatten(
-                    logic.tuplize_dict(logic.parse_params(request.form))))
-            data_dict.update(logic.clean_dict(
-                dictization_functions.unflatten(
-                    logic.tuplize_dict(logic.parse_params(request.files))))
-            )
-
-        except dictization_functions.DataError:
-            base.abort(400, _(u'Integrity Error'))
-        data_dict.setdefault(u'activity_streams_email_notifications', False)
-
-        data_dict[u'id'] = id
-        # deleted user can be reactivated by sysadmin on WEB-UI
-        is_deleted = False
-        if asbool(data_dict.get('activate_user', False)):
-            user_dict = logic.get_action('user_show')(context, {'id': id})
-            # set the flag so if validation error happens we will
-            # change back the user state to deleted
-            is_deleted = user_dict.get('state') == 'deleted'
-            # if activate_user is checked, change the user's state to active
-            data_dict['state'] = 'active'
-            # pop the value as we don't want to send it for
-            # validation on user_update
-            data_dict.pop('activate_user')
-        # we need this comparison when sysadmin edits a user,
-        # this will return True
-        # and we can utilize it for later use.
-        email_changed = data_dict[u'email'] != current_user.email
-
-        # common users can edit their own profiles without providing
-        # password, but if they want to change
-        # their old password with new one... old password must be provided..
-        # so we are checking here if password1
-        # and password2 are filled so we can enter the validation process.
-        # when sysadmins edits a user he MUST provide sysadmin password.
-        # We are recognizing sysadmin user
-        # by email_changed variable.. this returns True
-        # and we are entering the validation.
-        if (data_dict[u'password1']
-                and data_dict[u'password2']) or email_changed:
-
-            # getting the identity for current logged user
-            identity = {
-                u'login': current_user.name,
-                u'password': data_dict[u'old_password']
-            }
-            auth_user = authenticator.ckan_authenticator(identity)
-
-            # we are checking if the identity is not the
-            # same with the current logged user if so raise error.
-            auth_username = auth_user.name if auth_user else ''
-            if auth_username != current_user.name:
-                errors = {"oldpassword": [_("Password entered was incorrect")]}
-                error_summary = (
-                    {_("Old Password"): _("incorrect password")}
-                    if not current_user.sysadmin  # type: ignore
-                    else {_("Sysadmin Password"): _("incorrect password")}
-                )
-                return self.get(id, data_dict, errors, error_summary)
-
-        try:
-            user = logic.get_action(u'user_update')(context, data_dict)
-        except logic.NotAuthorized:
-            base.abort(403, _(u'Unauthorized to edit user %s') % id)
-        except logic.NotFound:
-            base.abort(404, _(u'User not found'))
-        except logic.ValidationError as e:
-            errors = e.error_dict
-            error_summary = e.error_summary
-            # the user state was deleted, we are trying to reactivate it but
-            # validation error happens so we want to change back the state
-            # to deleted, as it was before
-            if is_deleted and data_dict.get('state') == 'active':
-                data_dict['state'] = 'deleted'
-            return self.get(id, data_dict, errors, error_summary)
-
-        h.flash_success(_(u'Profile updated'))
-        resp = h.redirect_to(u'user.read', id=user[u'name'])
-
-        return resp
-
-    def get(self,
-            id: Optional[str] = None,
-            data: Optional[dict[str, Any]] = None,
-            errors: Optional[dict[str, Any]] = None,
-            error_summary: Optional[dict[str, Any]] = None) -> str:
-        context, id = self._prepare(id)
-        data_dict = {u'id': id}
-        try:
-
-            old_data = logic.get_action(u'user_show')(context, data_dict)
-            data = data or old_data
-
-        except logic.NotAuthorized:
-            base.abort(403, _(u'Unauthorized to edit user %s') % u'')
-        except logic.NotFound:
-            base.abort(404, _(u'User not found'))
-
-        errors = errors or {}
-        vars: dict[str, Any] = {
-            u'data': data,
-            u'errors': errors,
-            u'error_summary': error_summary
-        }
-
-        extra_vars = _extra_template_variables(cast(Context, {
-            u'model': model,
-            u'session': model.Session,
-            u'user': current_user.name
-        }), data_dict)
-
-        vars.update(extra_vars)
-        extra_vars[u'form'] = base.render(edit_user_form, extra_vars=vars)
-
-        return base.render(u'user/edit.html', extra_vars)
-
 
 class RegisterView(MethodView):
     def _prepare(self):
@@ -596,18 +451,37 @@ def delete(id: str) -> Union[Response, Any]:
     })
     data_dict = {u'id': id}
 
+    if u'cancel' in request.form:
+        return h.redirect_to(u'user.edit', id=id)
+
     try:
-        logic.get_action(u'user_delete')(context, data_dict)
+        if request.method == u'POST':
+            logic.get_action(u'user_delete')(context, data_dict)
+        user_dict = logic.get_action(u'user_show')(context, {u'id': id})
     except logic.NotAuthorized:
         msg = _(u'Unauthorized to delete user with id "{user_id}".')
-        base.abort(403, msg.format(user_id=id))
+        return base.abort(403, msg.format(user_id=id))
+    except logic.NotFound as e:
+        return base.abort(404, _(e.message))
 
-    if current_user.is_authenticated:
+    if request.method == 'POST' and current_user.is_authenticated:
         if current_user.id == id:  # type: ignore
             return logout()
         else:
             user_index = h.url_for(u'user.index')
             return h.redirect_to(user_index)
+
+    # TODO: Remove
+    # ckan 2.9: Adding variables that were removed from c object for
+    # compatibility with templates in existing extensions
+    g.user_dict = user_dict
+    g.user_id = id
+
+    extra_vars = {
+        u"user_id": id,
+        u"user_dict": user_dict
+    }
+    return base.render(u'user/confirm_delete.html', extra_vars)
 
 
 class RequestResetView(MethodView):
@@ -629,7 +503,7 @@ class RequestResetView(MethodView):
         if id in (None, u''):
             h.flash_error(_(u'Email is required'))
             return h.redirect_to(u'user.request_reset')
-        log.info(u'Password reset requested for user "{}"'.format(id))
+        log.info(u'Password reset requested for user %s', repr_untrusted(id))
 
         context = cast(
             Context, {
@@ -672,6 +546,8 @@ class RequestResetView(MethodView):
                 pass
 
         if not user_objs:
+            log.info(u'User requested reset link for unknown user: %s',
+                     repr_untrusted(id))
             log.info(u'User requested reset link for unknown user: {}'
                      .format(id))
 
@@ -907,10 +783,6 @@ def sysadmin() -> Response:
 user.add_url_rule(u'/', view_func=index, strict_slashes=False)
 user.add_url_rule(u'/me', view_func=me)
 
-_edit_view: Any = EditView.as_view(str(u'edit'))
-user.add_url_rule(u'/edit', view_func=_edit_view)
-user.add_url_rule(u'/edit/<id>', view_func=_edit_view)
-
 user.add_url_rule(
     u'/register', view_func=RegisterView.as_view(str(u'register')))
 
@@ -918,7 +790,7 @@ user.add_url_rule(u'/login', view_func=login, methods=('GET', 'POST'))
 user.add_url_rule(u'/_logout', view_func=logout)
 user.add_url_rule(u'/logged_out_redirect', view_func=logged_out_page)
 
-user.add_url_rule(u'/delete/<id>', view_func=delete, methods=(u'POST', ))
+user.add_url_rule(u'/delete/<id>', view_func=delete, methods=(u'POST', 'GET'))
 
 user.add_url_rule(
     u'/reset', view_func=RequestResetView.as_view(str(u'request_reset')))

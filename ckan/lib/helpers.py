@@ -79,7 +79,6 @@ MARKDOWN_ATTRIBUTES.setdefault('img', []).extend(['src', 'alt', 'title'])
 
 LEGACY_ROUTE_NAMES = {
     'home': 'home.index',
-    'about': 'home.about',
     'search': 'dataset.search',
     'dataset_read': 'dataset.read',
     'dataset_groups': 'dataset.groups',
@@ -1126,16 +1125,19 @@ def get_facet_items_dict(
         return []
     facets = []
     for facet_item in search_facets[facet]['items']:
-        if not len(facet_item['name'].strip()):
+        count = facet_item.get('count', 0)
+        if not count:
+            continue
+        facet_item_name = facet_item.get('name', '')
+        if not len(facet_item_name.strip()):
             continue
         params_items = request.args.items(multi=True)
-        if not (facet, facet_item['name']) in params_items:
+        if not (facet, facet_item_name) in params_items:
             facets.append(dict(active=False, **facet_item))
         elif not exclude_active:
             facets.append(dict(active=True, **facet_item))
     # Sort descendingly by count and ascendingly by case-sensitive display name
-    sort_facets: Callable[[Any], tuple[int, str]] = lambda it: (
-        -it['count'], it['display_name'].lower())
+    sort_facets: Callable[[Any], tuple[int, str]] = lambda it: (-it['count'], it['display_name'].lower())
     facets.sort(key=sort_facets)
     if hasattr(g, 'search_facets_limits'):
         if g.search_facets_limits and limit is None:
@@ -1167,11 +1169,12 @@ def has_more_facets(facet: str,
 
     '''
     facets = []
-    for facet_item in search_facets[facet]['items']:
-        if not len(facet_item['name'].strip()):
+    for facet_item in (x for x in search_facets[facet].get('items', [])):
+        facet_item_name = facet_item.get('name', '')
+        if not len(facet_item_name.strip()):
             continue
         params_items = request.args.items(multi=True)
-        if not (facet, facet_item['name']) in params_items:
+        if not (facet, facet_item_name) in params_items:
             facets.append(dict(active=False, **facet_item))
         elif not exclude_active:
             facets.append(dict(active=True, **facet_item))
@@ -2380,7 +2383,6 @@ def list_dict_filter(list_: list[dict[str, Any]],
 
     :param value: the value to search for
     '''
-
     for item in list_:
         if item.get(search_field) == value:
             return item.get(output_field, value)
@@ -2479,12 +2481,10 @@ def featured_group_org(items: list[str], get_action: str, list_action: str,
 @core_helper
 def get_site_statistics() -> dict[str, int]:
     stats = {}
-#    stats['dataset_count'] = logic.get_action('package_search')({}, {"rows": 1})['count']
     package_count_action = logic.get_action('package_count')
     stats['dataset_count'] = package_count_action()
     stats['group_count'] = len(logic.get_action('group_list')({}, {}))
     stats['organization_count'] = len(logic.get_action('organization_list')({}, {}))
-    log.info(f"Get stats: {stats}")
     return stats
 
 

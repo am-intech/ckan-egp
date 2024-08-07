@@ -3,6 +3,8 @@
 '''API functions for updating existing data in CKAN.'''
 from __future__ import annotations
 
+import sqlalchemy
+
 from ckan.types.logic import ActionResult
 import logging
 import datetime
@@ -41,6 +43,7 @@ _check_access = logic.check_access
 NotFound = logic.NotFound
 ValidationError = logic.ValidationError
 _get_or_bust = logic.get_or_bust
+_and_ = sqlalchemy.and_
 
 
 def resource_update(context: Context, data_dict: DataDict) -> ActionResult.ResourceUpdate:
@@ -228,8 +231,7 @@ def resource_view_reorder(
     return {'id': id, 'order': new_order}
 
 
-def package_update(
-        context: Context, data_dict: DataDict) -> ActionResult.PackageUpdate:
+def package_update(context: Context, data_dict: DataDict) -> ActionResult.PackageUpdate:
     '''Update a dataset (package).
 
     You must be authorized to edit the dataset and the groups that it belongs
@@ -316,6 +318,28 @@ def package_update(
     if errors:
         model.Session.rollback()
         raise ValidationError(errors)
+
+    # update organization, if owner changes
+    new_owner = data_dict.get('owner_org')
+    old_owner = pkg.owner_org
+    if new_owner != old_owner:
+        # delete old owner orgs member records
+        member = model.Member
+        members = model.Session.query(member)\
+            .filter(_and_(member.group_id == old_owner, member.table_id == pkg.id, member.table_name == 'package', member.capacity == 'organization'))\
+            .all()
+        for m in members:
+            m.delete()
+        # create new owner org records
+        member = model.Member()
+        member.group_id = new_owner
+        member.table_id = pkg.id
+        member.state = 'active'
+        member.table_name = 'package'
+        member.capacity = 'organization'
+        model.Session.add(member)
+        model.repo.commit()
+    # end update organization
 
     #avoid revisioning by updating directly
     model.Session.query(model.Package).filter_by(id=pkg.id).update(

@@ -24,7 +24,7 @@
         {% endblock %}
         {% block header_dashboard %}
           <li>
-            <a href="{{ h.url_for('dashboard.datasets') }}" title="{{ _("View dashboard") }}">
+            <a href="{{ h.url_for('dashboard.datasets') }}" title="{{ _('View dashboard') }}">
               <i class="fa fa-tachometer" aria-hidden="true"></i>
               <span class="text">{{ _('Dashboard') }}</span>
             </a>
@@ -92,11 +92,9 @@
 
 		          {{ h.build_nav_main(
 		            (dataset_type ~ '.search', h.humanize_entity_type('package', dataset_type, 'main nav') or _('Datasets'), ["dataset", "resource"]),
-		            (org_type ~ '.index',
-                  h.humanize_entity_type('organization', org_type, 'main nav') or _('Organizations'), ['organization']),
-		            (group_type ~ '.index',
-                  h.humanize_entity_type('group', group_type, 'main nav') or _('Groups'), ['group']),
-		            ('home.about', _('About')) ) }}
+		            (org_type ~ '.index', h.humanize_entity_type('organization', org_type, 'main nav') or _('Groups'), ['organization']),
+		            (group_type ~ '.index', h.humanize_entity_type('group', group_type, 'main nav') or _('Organizations'), ['group'])
+               ) }}
 	          {% endblock %}
           </ul>
 

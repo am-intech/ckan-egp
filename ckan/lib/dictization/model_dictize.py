@@ -23,8 +23,8 @@ from typing_extensions import Literal
 from urllib.parse import urlsplit
 from sqlalchemy.sql.schema import Table
 from sqlalchemy.sql.selectable import Select
-
 from sqlalchemy.sql import select
+import logging
 
 import ckan.logic as logic
 import ckan.plugins as plugins
@@ -37,6 +37,7 @@ import ckan.model as model
 from ckan.types import Context
 from ckan.common import config
 
+log = logging.getLogger(__name__)
 ## package save
 
 def group_list_dictize(
@@ -63,7 +64,16 @@ def group_list_dictize(
     if with_package_counts and 'dataset_counts' not in group_dictize_context:
         # 'dataset_counts' will already be in the context in the case that
         # group_list_dictize recurses via group_dictize (groups in groups)
-        group_dictize_context['dataset_counts'] = get_group_dataset_counts()
+        # context = get_group_dataset_counts()
+        get_group_counters = logic.get_action('get_group_counters')
+        groups_counters = get_group_counters(context, {})
+        get_org_counters = logic.get_action('get_org_counters')
+        org_counters = get_org_counters(context, {})
+        dataset_counters = {
+            'groups': groups_counters,
+            'owner_org': org_counters,
+        }
+        group_dictize_context['dataset_counts'] = dataset_counters
     if context.get('with_capacity'):
         group_list = [
             group_dictize(
@@ -177,8 +187,7 @@ def package_dictize(
     # plugin_data
     plugin_data = result_dict.pop('plugin_data', None)
     if include_plugin_data:
-        result_dict['plugin_data'] = copy.deepcopy(
-            plugin_data) if plugin_data else plugin_data
+        result_dict['plugin_data'] = copy.deepcopy(plugin_data) if plugin_data else plugin_data
 
     # resources
     res = model.resource_table
@@ -190,12 +199,9 @@ def package_dictize(
     # tags
     tag = model.tag_table
     pkg_tag = model.package_tag_table
-    q = select([tag, pkg_tag.c["state"]],
-               from_obj=pkg_tag.join(tag, tag.c["id"] == pkg_tag.c["tag_id"])
-               ).where(pkg_tag.c["package_id"] == pkg.id)
+    q = select([tag, pkg_tag.c["state"]], from_obj=pkg_tag.join(tag, tag.c["id"] == pkg_tag.c["tag_id"])).where(pkg_tag.c["package_id"] == pkg.id)
     result = execute(q, pkg_tag, context)
-    result_dict["tags"] = d.obj_list_dictize(result, context,
-                                             lambda x: x["name"])
+    result_dict["tags"] = d.obj_list_dictize(result, context, lambda x: x["name"])
     result_dict['num_tags'] = len(result_dict.get('tags', []))
 
     # Add display_names to tags. At first a tag's display_name is just the
@@ -225,6 +231,20 @@ def package_dictize(
     # time as indexing to it.
     # tags, extras and sub-groups are not included for speed
     result_dict["groups"] = group_list_dictize(result, context,
+                                               with_package_counts=False)
+    # orgs
+    member = model.member_table
+    group = model.group_table
+    q = select([group, member.c["capacity"]],
+               from_obj=member.join(group, group.c["id"] == member.c["group_id"])
+               ).where(member.c["table_id"] == pkg.id)\
+                .where(member.c["state"] == 'active') \
+                .where(group.c["is_organization"] == True)
+    result = execute(q, member, context)
+    # no package counts as cannot fetch from search index at the same
+    # time as indexing to it.
+    # tags, extras and sub-groups are not included for speed
+    result_dict["orgs"] = group_list_dictize(result, context,
                                                with_package_counts=False)
 
     # owning organization
@@ -349,11 +369,9 @@ def group_dictize(group: model.Group, context: Context,
     result_dict['display_name'] = group.title or group.name
 
     if include_extras:
-        result_dict['extras'] = extras_dict_dictize(
-            group._extras, context)
+        result_dict['extras'] = extras_dict_dictize(group._extras, context)
 
     context['with_capacity'] = True
-
     if packages_field:
         def get_packages_for_this_group(group_: model.Group,
                                         just_the_count: bool = False):
@@ -363,20 +381,11 @@ def group_dictize(group: model.Group, context: Context,
                 'rows': 0,
             }
 
-            if group_.is_organization:
+            if not group_.is_organization:
                 q['fq'] = '+owner_org:"{0}"'.format(group_.id)
             else:
                 q['fq'] = '+groups:"{0}"'.format(group_.name)
-
-            if group_.is_organization:
-                is_group_member = (context.get('user') and
-                    authz.has_user_permission_for_group_or_org(
-                        group_.id, context.get('user'), 'read'))
-                if is_group_member:
-                    q['include_private'] = True
-                else:
-                    if config.get('ckan.auth.allow_dataset_collaborators'):
-                        q['include_private'] = True
+            q['include_private'] = True
 
             if not just_the_count:
                 # package_search limits 'rows' anyway, so this is only if you
@@ -388,49 +397,42 @@ def group_dictize(group: model.Group, context: Context,
                 else:
                     q['rows'] = packages_limit
 
-            search_context = cast(
-                Context, dict((k, v) for (k, v) in context.items()
-                              if k != 'schema'))
-            search_results = logic.get_action('package_search')(
-                search_context, q)
+            search_context = cast(Context, dict((k, v) for (k, v) in context.items() if k != 'schema'))
+            package_search = logic.get_action('package_search')
+            search_results = package_search(search_context, q)
             return search_results['count'], search_results['results']
 
         if packages_field == 'datasets':
             package_count, packages = get_packages_for_this_group(group)
             result_dict['packages'] = packages
         else:
-            dataset_counts = context.get('dataset_counts', None)
-
-            if dataset_counts is None:
-                package_count, packages = get_packages_for_this_group(
-                    group, just_the_count=True)
-            else:
-                # Use the pre-calculated package_counts passed in.
-                facets = dataset_counts
-                if group.is_organization:
-                    package_count = facets['owner_org'].get(group.id, 0)
-                else:
-                    package_count = facets['groups'].get(group.name, 0)
-
+            # dataset_counts = context.get('dataset_counts', None)
+            # if dataset_counts is None:
+            counter_func_name = 'get_org_counters' if group.is_organization else 'get_group_counters'
+            counter_func = logic.get_action(counter_func_name)
+            counters = counter_func(context, {"id": group.id})
+            package_count = counters.get(group.name, 0)
+            # package_count, packages = get_packages_for_this_group(group, just_the_count=True)
+            # else:
+            #     # Use the pre-calculated package_counts passed in.
+            #     facets = dataset_counts
+            #     if group.is_organization:
+            #         package_count = facets['owner_org'].get(group.id, 0)
+            #     else:
+            #         package_count = facets['groups'].get(group.name, 0)
         result_dict['package_count'] = package_count
-
+        log.info(f"Packages count !!!!!: {package_count}")
     if include_tags:
         # group tags are not creatable via the API yet, but that was(/is) a
         # future intention (see kindly's commit 5c8df894 on 2011/12/23)
-        result_dict['tags'] = tag_list_dictize(
-            _get_members(context, group, 'tags'),
-            context)
+        result_dict['tags'] = tag_list_dictize(_get_members(context, group, 'tags'), context)
 
     if include_groups:
         # these sub-groups won't have tags or extras for speed
-        result_dict['groups'] = group_list_dictize(
-            _get_members(context, group, 'groups'),
-            context, include_groups=True)
+        result_dict['groups'] = group_list_dictize(_get_members(context, group, 'groups'), context, include_groups=True)
 
     if include_users:
-        result_dict['users'] = user_list_dictize(
-            _get_members(context, group, 'users'),
-            context)
+        result_dict['users'] = user_list_dictize(_get_members(context, group, 'users'), context)
 
     context['with_capacity'] = False
 

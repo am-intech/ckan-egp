@@ -69,11 +69,12 @@ def obj_list_dictize(
     active = context.get('active', True)
 
     for obj in obj_list:
-        if context.get('with_capacity'):
-            obj, capacity = obj
-            dictized = table_dictize(obj, context, capacity=capacity)
-        else:
-            dictized = table_dictize(obj, context)
+        # if context.get('with_capacity'):
+        #     log.info(f"obj_list_dictize: {obj}")
+        #     obj, capacity = obj[0:2]
+        #     dictized = table_dictize(obj, context, capacity=capacity)
+        # else:
+        dictized = table_dictize(obj, context)
         if active and obj.state != 'active':
             continue
         result_list.append(dictized)

@@ -261,6 +261,10 @@ class Package(core.StatefulObjectMixin,
         groups = [getattr(group, ref_group_by) for group in self.get_groups()]
         groups.sort()
         _dict['groups'] = groups
+        orgs = [getattr(group, ref_group_by) for group in self.get_groups(group_type='organization')]
+        logger.info(f"Package as_dict: {orgs}")
+        orgs.sort()
+        _dict['orgs'] = orgs
         _dict['extras'] = {key: value for key, value in self.extras.items()}
         _dict['resources'] = [res.as_dict(core_columns_only=False) \
                               for res in self.resources]

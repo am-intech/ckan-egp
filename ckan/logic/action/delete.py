@@ -3,6 +3,8 @@
 '''API functions for deleting data from CKAN.'''
 from __future__ import annotations
 
+import sqlalchemy
+
 from ckan.types.logic import ActionResult
 import logging
 from typing import Any, Union, Type, cast
@@ -32,7 +34,7 @@ NotFound = ckan.logic.NotFound
 _check_access = ckan.logic.check_access
 _get_or_bust = ckan.logic.get_or_bust
 _get_action = ckan.logic.get_action
-
+_and_ = sqlalchemy.and_
 
 def user_delete(context: Context, data_dict: DataDict) -> ActionResult.UserDelete:
     '''Delete a user.
@@ -98,9 +100,10 @@ def package_delete(context: Context, data_dict: DataDict) -> ActionResult.Packag
 
     entity.delete()
 
-    dataset_memberships = model.Session.query(model.Member).filter(
-        model.Member.table_id == id).filter(
-        model.Member.state == 'active').all()
+    mMember = model.Member
+    dataset_memberships = model.Session.query(mMember)\
+        .filter(mMember.table_id == id, mMember.state == 'active')\
+        .all()
 
     for membership in dataset_memberships:
         membership.delete()
@@ -402,11 +405,9 @@ def _group_or_org_delete(
                         .filter(model.Package.state != 'deleted') \
                         .count()
         if datasets:
-            if not authz.check_config_permission(
-                    'ckan.auth.create_unowned_dataset'):
+            if not authz.check_config_permission('ckan.auth.create_unowned_dataset'):
                 raise ValidationError({
-                    'message': _('Organization cannot be deleted while it '
-                                      'still has datasets')})
+                    'message': _('Organization cannot be deleted while it still has datasets')})
 
             pkg_table = model.package_table
             # using Core SQLA instead of the ORM should be faster

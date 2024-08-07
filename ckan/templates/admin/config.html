@@ -46,7 +46,6 @@
     </h2>
     <div class="module-content">
       {% block admin_form_help %}
-        {% set about_url = h.url_for('home.about') %}
         {% set home_url = h.url_for('home.index') %}
         {% set docs_url = "http://docs.ckan.org/en/{0}/theming".format(g.ckan_doc_version) %}
         {% trans %}

@@ -1,4 +1,6 @@
 # encoding: utf-8
+import logging
+import sqlalchemy
 
 import ckan.logic as logic
 import ckan.authz as authz
@@ -10,6 +12,11 @@ from ckan.lib.plugins import get_permission_labels
 from ckan.common import asbool
 from ckan.types import Context, DataDict, AuthResult
 
+log = logging.getLogger(__name__)
+_select = sqlalchemy.select
+_func = sqlalchemy.func
+_and_ = sqlalchemy.and_
+_or_ = sqlalchemy.or_
 
 def sysadmin(context: Context, data_dict: DataDict) -> AuthResult:
     ''' This is a pseudo check if we are a sysadmin all checks are true '''
@@ -55,7 +62,6 @@ def group_list_authz(context: Context, data_dict: DataDict) -> AuthResult:
 def group_list_available(context: Context, data_dict: DataDict) -> AuthResult:
     return authz.is_authorized('group_list', context, data_dict)
 
-
 def organization_list(context: Context, data_dict: DataDict) -> AuthResult:
     # List of all active organizations are visible by default
     return {'success': True}
@@ -82,14 +88,9 @@ def tag_list(context: Context, data_dict: DataDict) -> AuthResult:
 
 
 def user_list(context: Context, data_dict: DataDict) -> AuthResult:
-    # Users list is visible by default
-    if data_dict.get('email'):
-        # only sysadmins can specify the 'email' parameter
-        return {'success': False}
-    if not config.get('ckan.auth.public_user_details'):
-        return restrict_anon(context)
-    else:
-        return {'success': True}
+    auth_user_obj  = context.get("auth_user_obj")
+    accessible = not auth_user_obj and auth_user_obj.is_authenticated and auth_user_obj.sysadmin
+    return {'success': accessible}
 
 
 def package_relationships_list(context: Context,
@@ -100,11 +101,9 @@ def package_relationships_list(context: Context,
     id2 = data_dict.get('id2')
 
     # If we can see each package we can see the relationships
-    authorized1 = authz.is_authorized_boolean(
-        'package_show', context, {'id': id})
+    authorized1 = authz.is_authorized_boolean('package_show', context, {'id': id})
     if id2:
-        authorized2 = authz.is_authorized_boolean(
-            'package_show', context, {'id': id2})
+        authorized2 = authz.is_authorized_boolean('package_show', context, {'id': id2})
     else:
         authorized2 = True
 
@@ -116,18 +115,38 @@ def package_relationships_list(context: Context,
 
 def package_show(context: Context, data_dict: DataDict) -> AuthResult:
     user = context.get('user')
+    userobj = context['auth_user_obj']
     package = get_package_object(context, data_dict)
-    labels = get_permission_labels()
-    user_labels = labels.get_user_dataset_labels(context['auth_user_obj'])
-    authorized = any(
-        dl in user_labels for dl in labels.get_dataset_labels(package))
+    authorized = userobj and (userobj.is_authenticated or not package.private)
+    if authorized:
+        authorized = userobj.is_authenticated and (userobj.sysadmin or package.creator_user_id == userobj.id)
+        if not authorized:
+            model = context['model']
+            allow_collaborators = authz.check_config_permission('allow_dataset_collaborators')
+            mPackage = model.Package
+            mMember = model.Member
+            mPackageMember = model.PackageMember
+            query = _select([_func.count(mPackage.id)])\
+                .select_from(mPackage)\
+                .join(mMember, _and_(mMember.table_id == mPackage.id,
+                                     mMember.state == "active",
+                                     mMember.capacity == "organization",
+                                     mMember.table_name == "package"), isouter=True)
+            if allow_collaborators:
+                query = query.join(mPackageMember, mPackageMember.package_id == mPackage.id, isouter=True)
+            query = query.filter(mPackage.id == package.id)
+            res = next(query.execute(), {})[0]
+            authorized = res > 0
+    # labels = get_permission_labels()
+    # user_labels = labels.get_user_dataset_labels(userobj)
+    # dataset_labels = labels.get_dataset_labels(package)
+    # authorized = any(dl in user_labels for dl in dataset_labels)
 
-    if not authorized:
-        return {
-            'success': False,
-            'msg': _('User %s not authorized to read package %s') % (user, package.id)}
-    else:
-        return {'success': True}
+        if not authorized:
+            return {
+                'success': False,
+                'msg': _('User %s not authorized to read package %s') % (user, package.id)}
+    return {'success': True}
 
 
 def resource_show(context: Context, data_dict: DataDict) -> AuthResult:
