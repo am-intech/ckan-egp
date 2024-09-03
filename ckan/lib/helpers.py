@@ -1057,37 +1057,32 @@ def humanize_entity_type(entity_type: str, object_type: str,
     log.debug(
         u'Humanize %s of type %s for %s', entity_type, object_type, purpose)
     templates = {
-        u'add link': _(u"Add {object_type}"),
-        u'breadcrumb': _(u"{object_type}s"),
-        u'content tab': _(u"{object_type}s"),
-        u'create label': _(u"Create {object_type}"),
-        u'create title': _(u"Create {object_type}"),
-        u'delete confirmation': _(
-            u'Are you sure you want to delete this {object_type}?'),
-        u'description placeholder': _(
-            u"A little information about my {object_type}..."),
-        u'edit label': _(u"Edit {object_type}"),
-        u'facet label': _(u"{object_type}s"),
-        u'form label': _(u"{object_type} Form"),
-        u'main nav': _(u"{object_type}s"),
-        u'my label': _(u"My {object_type}s"),
-        u'view label': _("View {object_type}"),
-        u'name placeholder': _(u"My {object_type}"),
-        u'no any objects': _(
-            u"There are currently no {object_type}s for this site"),
-        u'no associated label': _(
-            u'There are no {object_type}s associated with this dataset'),
-        u'no description': _(
-            u'There is no description for this {object_type}'),
-        u'no label': _(u"No {object_type}"),
-        u'page title': _(u"{object_type}s"),
-        u'save label': _(u"Save {object_type}"),
-        u'search placeholder': _(u'Search {object_type}s...'),
-        u'you not member': _(u'You are not a member of any {object_type}s.'),
-        u'update label': _(u"Update {object_type}"),
+        'add link': _("Add {object_type}"),
+        'breadcrumb': _("{object_type}s"),
+        'content tab': _("{object_type}s"),
+        'create label': _("Create {object_type}"),
+        'create title': _("Create {object_type}"),
+        'delete confirmation': _('Are you sure you want to delete this {object_type}?'),
+        'description placeholder': _("A little information about my {object_type}..."),
+        'edit label': _("Edit {object_type}"),
+        'facet label': _("{object_type}s"),
+        'form label': _("{object_type} Form"),
+        'main nav': _("{object_type}s"),
+        'my label': _("My {object_type}s"),
+        'view label': _("View {object_type}"),
+        'name placeholder': _("My {object_type}"),
+        'no any objects': _("There are currently no {object_type}s for this site"),
+        'no associated label': _('There are no {object_type}s associated with this dataset'),
+        'no description': _('There is no description for this {object_type}'),
+        'no label': _("No {object_type}"),
+        'page title': _("{object_type}s"),
+        'save label': _("Save {object_type}"),
+        'search placeholder': _('Search {object_type}s...'),
+        'you not member': _('You are not a member of any {object_type}s.'),
+        'update label': _("Update {object_type}"),
     }
 
-    type_label = object_type.replace(u"_", u" ").capitalize()
+    type_label = object_type.replace("_", " ").capitalize()
     if purpose not in templates:
         return type_label
 
@@ -1129,6 +1124,8 @@ def get_facet_items_dict(
         if not count:
             continue
         facet_item_name = facet_item.get('name', '')
+        if not facet_item_name:
+            continue
         if not len(facet_item_name.strip()):
             continue
         params_items = request.args.items(multi=True)
@@ -1171,6 +1168,8 @@ def has_more_facets(facet: str,
     facets = []
     for facet_item in (x for x in search_facets[facet].get('items', [])):
         facet_item_name = facet_item.get('name', '')
+        if not facet_item_name:
+            continue
         if not len(facet_item_name.strip()):
             continue
         params_items = request.args.items(multi=True)

@@ -1523,15 +1523,15 @@ def api_token_create(context: Context,
     :rtype: dictionary
 
     """
-    model = context[u'model']
-    user, name = _get_or_bust(data_dict, [u'user', u'name'])
+    model = context['model']
+    user, token_name = _get_or_bust(data_dict, ['user', 'name'])
 
     if model.User.get(user) is None:
         raise NotFound("User not found")
 
-    _check_access(u'api_token_create', context, data_dict)
+    _check_access('api_token_create', context, data_dict)
 
-    schema = context.get(u'schema')
+    schema = context.get('schema')
     if not schema:
         schema = api_token.get_schema()
 
@@ -1541,16 +1541,16 @@ def api_token_create(context: Context,
         raise ValidationError(errors)
 
     token_obj = model_save.api_token_save(
-        {u'user': user, u'name': name}, context
+        {'user': user, 'name': token_name}, context
     )
     model.Session.commit()
     data = {
-        u'jti': token_obj.id,
-        u'iat': api_token.into_seconds(token_obj.created_at)
+        'jti': token_obj.id,
+        'iat': api_token.into_seconds(token_obj.created_at)
     }
 
     data = api_token.postprocess(data, token_obj.id, validated_data_dict)
     token = api_token.encode(data)
 
-    result = api_token.add_extra({u'token': token})
+    result = api_token.add_extra({'token': token})
     return result

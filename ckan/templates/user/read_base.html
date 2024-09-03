@@ -73,7 +73,7 @@
         {% if is_myself %}
           <dl>
             <dt class="key">{{ _('API Key') }} </dt>
-            <dd class="value"><code>{{ user.apikey }}</code></dd>
+            <dd class="value"><code>{{ user.apikey or '' }}</code></dd>
           </dl>
         {% endif %}
       </div>

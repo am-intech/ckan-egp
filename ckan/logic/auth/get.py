@@ -1,6 +1,7 @@
 # encoding: utf-8
 import logging
 import sqlalchemy
+from sqlalchemy.orm import aliased
 
 import ckan.logic as logic
 import ckan.authz as authz
@@ -124,17 +125,41 @@ def package_show(context: Context, data_dict: DataDict) -> AuthResult:
             model = context['model']
             allow_collaborators = authz.check_config_permission('allow_dataset_collaborators')
             mPackage = model.Package
-            mMember = model.Member
             mPackageMember = model.PackageMember
-            query = _select([_func.count(mPackage.id)])\
-                .select_from(mPackage)\
-                .join(mMember, _and_(mMember.table_id == mPackage.id,
-                                     mMember.state == "active",
-                                     mMember.capacity == "organization",
-                                     mMember.table_name == "package"), isouter=True)
-            if allow_collaborators:
-                query = query.join(mPackageMember, mPackageMember.package_id == mPackage.id, isouter=True)
-            query = query.filter(mPackage.id == package.id)
+            umember = aliased(model.Member)
+            pmember = aliased(model.Member)
+
+            # user is a collaborator
+            pmember_query = _select([mPackageMember.package_id]).select_from(mPackageMember) \
+                .filter(_and_(
+                    mPackageMember.package_id == package.id,
+                    mPackageMember.user_id == userobj.id
+                ))
+
+            # user is in organization
+            gmember_query = _select([pmember.table_id]).select_from(pmember) \
+                .join(umember, _and_(
+                    pmember.group_id == umember.group_id,
+                    pmember.state == 'active',
+                    pmember.table_name == 'package',
+                    pmember.capacity == 'organization',
+                    pmember.table_id == package.id
+                )) \
+                .filter(_and_(
+                    umember.table_name == 'user',
+                    umember.state == 'active',
+                    umember.table_id == userobj.id
+                ))
+
+            allow_collaborators
+
+            query = _select([_func.count(mPackage.id)]) \
+                .select_from(mPackage) \
+                .filter(_or_(
+                    mPackage.id.in_(pmember_query) if allow_collaborators else False,
+                    mPackage.id.in_(gmember_query)
+                ))
+
             res = next(query.execute(), {})[0]
             authorized = res > 0
     # labels = get_permission_labels()
@@ -189,13 +214,12 @@ def resource_view_list(context: Context, data_dict: DataDict) -> AuthResult:
 def group_show(context: Context, data_dict: DataDict) -> AuthResult:
     user = context.get('user')
     group = get_group_object(context, data_dict)
-    if group.state == 'active':
-        if config.get('ckan.auth.public_user_details') or \
-            (not asbool(data_dict.get('include_users', False)) and
-                (data_dict.get('object_type', None) != 'user')):
-            return {'success': True}
-    authorized = authz.has_user_permission_for_group_or_org(
-        group.id, user, 'read')
+    # if group.state == 'active':
+    #     if config.get('ckan.auth.public_user_details') or \
+    #         (not asbool(data_dict.get('include_users', False)) and
+    #             (data_dict.get('object_type', None) != 'user')):
+    #         return {'success': True}
+    authorized = authz.has_user_permission_for_group_or_org(group.id, user, 'read')
     if authorized:
         return {'success': True}
     else:

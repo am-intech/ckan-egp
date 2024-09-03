@@ -37,16 +37,12 @@
     {% endblock %}
 
     {% block basic_fields_description %}
-      {{ form.markdown('description', id='field-description', label=_('Description'), placeholder=_('Some useful notes about the data'), value=data.description, error=errors.description) }}
+      {{ form.markdown('description', id='field-description', label=_('Description'), value=data.description, error=errors.description) }}
     {% endblock %}
 
     {% block basic_fields_format %}
       {% set format_attrs = {'data-module': 'autocomplete', 'data-module-source': '/api/2/util/resource/format_autocomplete?incomplete=?'} %}
       {% call form.input('format', id='field-format', label=_('Format'), placeholder=_('eg. CSV, XML or JSON'), value=data.format, error=errors.format, classes=['control-medium'], attrs=format_attrs) %}
-        <span class="info-block info-block-small">
-          <i class="fa fa-info-circle"></i>
-          {{ _('This will be guessed automatically. Leave blank if you wish') }}
-        </span>
       {% endcall %}
     {% endblock %}
   {% endblock basic_fields %}

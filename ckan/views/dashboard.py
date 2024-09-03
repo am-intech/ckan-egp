@@ -8,9 +8,9 @@ from flask import Blueprint
 
 import ckan.lib.base as base
 from ckan.lib.helpers import helper_functions as h
-import ckan.logic as logic
+from ckan.logic import get_action, check_access, NotAuthorized
 import ckan.model as model
-from ckan.common import _, current_user
+from ckan.common import _, current_user, session
 from ckan.views.user import _extra_template_variables
 from ckan.types import Context
 
@@ -21,6 +21,7 @@ dashboard = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
 @dashboard.before_request
 def before_request() -> None:
+    session.pop('_flashes', None)
     if not current_user or current_user.is_anonymous:
         h.flash_error(_('Not authorized to see this page'))
         return h.redirect_to('user.login')  # type: ignore
@@ -31,10 +32,18 @@ def before_request() -> None:
             "user": current_user.name,
             "auth_user_obj": current_user
         })
-        logic.check_access('site_read', context)
-    except logic.NotAuthorized:
+        check_access('site_read', context)
+    except NotAuthorized:
         base.abort(403, _('Not authorized to see this page'))
-    return None
+
+    try:
+        check_token = get_action("oidc_check_token")
+        if check_token:
+            check_token(context, {})
+    except NotAuthorized:
+        session.delete()
+        return h.redirect_to("user.login")  # type: ignore
+
 
 
 def datasets() -> str:

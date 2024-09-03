@@ -455,27 +455,34 @@ def _group_or_org_list(context: Context, data_dict: DataDict, is_org: bool = Fal
         else:
             query = query.order_by(sqlalchemy.desc(sort_model_field))
 
-    if limit:
-        query = query.limit(limit)
-    if offset:
-        query = query.offset(offset)
     # exclude not accessed groups or organizations
     user = g.userobj
     if not user:
       return []
 
-    groups = query.all()
     if user and not user.sysadmin:
-      q = model.Session.query(model.Member).\
-        filter(model.Member.table_id == user.id).\
-        filter(model.Member.table_name == "user").\
-        filter(model.Member.state == "active")
-      user_groups = {x.group_id for x in q.all()}
-      from os import environ
-      excluded_groups = plugins.toolkit.config.get('ckanext.group_exclude_list', environ.get('CKANEXT__GROUP_EXCLUDE_LIST')) or ""
-      excluded_groups = {x.lower() for x in excluded_groups.split(",")}
-      groups = [x for x in groups if x.id in(user_groups) and x.name.lower() not in(excluded_groups)]
-    # -----------------------------------------------------------------------------------------------
+        query = query.filter(model.Group.id.in_(
+            _select([model.Member.group_id]) \
+                .select_from(model.Member) \
+                .filter(_and_(
+                    model.Member.table_name == 'user',
+                    model.Member.state == 'active',
+                    model.Member.table_id == user.id
+                ))
+        ))
+        # TODO ???
+        # from os import environ
+        # excluded_groups = plugins.toolkit.config.get('ckanext.group_exclude_list', environ.get('CKANEXT__GROUP_EXCLUDE_LIST')) or ""
+
+    if limit:
+        query = query.limit(limit)
+    if offset:
+        query = query.offset(offset)
+
+    debugq = query.statement.compile(compile_kwargs={"literal_binds": True})
+    log.info(f"### query = {debugq}")
+
+    groups = query.all()
 
     if all_fields:
         action = 'organization_show' if is_org else 'group_show'

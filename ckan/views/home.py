@@ -8,36 +8,45 @@ from typing import Any, Optional, cast, List, Tuple
 from flask import Blueprint, make_response, abort, redirect, request
 
 import ckan.model as model
-import ckan.logic as logic
+from ckan.logic import check_access, NotAuthorized, get_action
 import ckan.lib.base as base
-import ckan.lib.search as search
 from ckan.lib.helpers import helper_functions as h
 
-from ckan.common import g, config, current_user, _
+from ckan.common import g, config, current_user, _, session
 from ckan.types import Context, Response
 
 
-CACHE_PARAMETERS = [u'__cache', u'__no_cache__']
+CACHE_PARAMETERS = ['__cache', '__no_cache__']
 
 
-home = Blueprint(u'home', __name__)
+home = Blueprint('home', __name__)
 
 
 @home.before_request
 def before_request() -> None:
-    u'''set context and check authorization'''
+    '''set context and check authorization'''
+    session.pop('_flashes', None)
     try:
         context = cast(Context, {
             'model': model,
             'user': current_user.name,
             'auth_user_obj': current_user})
-        logic.check_access('site_read', context)
-    except logic.NotAuthorized:
+        check_access('site_read', context)
+    except NotAuthorized:
         abort(403)
+
+    try:
+        check_token = get_action("oidc_check_token")
+        if check_token:
+            check_token(context, {})
+    except NotAuthorized:
+        session.delete()
+        return h.redirect_to("user.login")  # type: ignore
+
 
 
 def index() -> str:
-    u'''display home page'''
+    '''display home page'''
     extra_vars: dict[str, Any] = {}
     context = cast(Context, {
         'model': model,
@@ -48,14 +57,17 @@ def index() -> str:
     )
 
     data_dict: dict[str, Any] = {
-        'q': u'*:*',
+        'q': '*:*',
         'facet.field': h.facets(),
         'rows': 4,
         'start': 0,
         'sort': 'view_recent desc',
         'fq': 'capacity:"public"'}
-    package_search = logic.get_action('package_search')
-    query = package_search(context, data_dict)
+    package_search = get_action('package_search')
+    try:
+        query = package_search(context, data_dict)
+    except NotAuthorized:
+        base.abort(403, _('Not authorized to see this page'))
     g.package_count = query['count']
     g.datasets = query['results']
 
@@ -69,6 +81,9 @@ def index() -> str:
         'tags': _('Tags'),
     }
     extra_vars['search_facets'] = query['search_facets']
+
+    if not current_user.is_authenticated:
+        return redirect(h.url_for('user.login'))
 
     if current_user.is_authenticated and not current_user.email:
         url = h.url_for('user.edit')
@@ -86,12 +101,9 @@ def robots_txt() -> Response:
 
 
 def redirect_locale(target_locale: str, path: Optional[str] = None) -> Any:
-
     target = f'/{target_locale}/{path}' if path else f'/{target_locale}'
-
     if request.args:
         target += f'?{urlencode(request.args)}'
-
     return redirect(target, code=308)
 
 
@@ -109,18 +121,7 @@ locales_mapping: List[Tuple[str, str]] = [
 ]
 
 for locale in locales_mapping:
-
     legacy_locale = locale[0]
     new_locale = locale[1]
-
-    home.add_url_rule(
-        f'/{legacy_locale}/',
-        view_func=redirect_locale,
-        defaults={'target_locale': new_locale}
-    )
-
-    home.add_url_rule(
-        f'/{legacy_locale}/<path:path>',
-        view_func=redirect_locale,
-        defaults={'target_locale': new_locale}
-    )
+    home.add_url_rule(f'/{legacy_locale}/', view_func=redirect_locale, defaults={'target_locale': new_locale})
+    home.add_url_rule(f'/{legacy_locale}/<path:path>', view_func=redirect_locale, defaults={'target_locale': new_locale})

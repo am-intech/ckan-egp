@@ -22,9 +22,9 @@ Example:
 <ol class="stages {{ class }}">
   <li class="first {{ s1 }}">
     {% if s1 != 'complete' %}
-      <span class="highlight">{{ h.humanize_entity_type('package', dataset_type, 'create label') or _('Create Dataset') }}</span>
+      <span class="highlight">{{ _('Create Dataset.') }}</span>
     {% else %}
-      <button class="highlight" name="save" value="go-dataset" type="submit">{{ h.humanize_entity_type('package', dataset_type, 'create label') or _('Create Dataset') }}</button>
+      <button class="highlight" name="save" value="go-dataset" type="submit">{{ _('Create Dataset.') }}</button>
     {% endif %}
   </li>
   <li class="last {{ s2 }}">

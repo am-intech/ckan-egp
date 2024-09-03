@@ -10,7 +10,7 @@
 
       {% block base_fields %}
         <div class="form-group ">
-            {{ form.input('name', label=_('Name'), is_required=True, value=data.name, error=errors.name) }}
+            {{ form.input('name', label=_('Token name'), placeholder=_('Enter token name'), is_required=True, value=data.name, error=errors.name) }}
         </div>
       {% endblock base_fields %}
       {% block additional_fields %}

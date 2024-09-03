@@ -86,6 +86,10 @@ def resource_update(context: Context, data_dict: DataDict) -> ActionResult.Resou
     del context["resource"]
 
     package_id = resource.package.id
+    # somehow data_dict[package_id] contains package name!
+    data_dict['package_id'] = package_id
+    log.info(f"package_id = {package_id}, {data_dict['package_id']}")
+
     package_show_context: Union[Context, Any] = dict(context, for_update=True)
     pkg_dict = _get_action('package_show')(
         package_show_context, {'id': package_id})

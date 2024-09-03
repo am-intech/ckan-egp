@@ -27,7 +27,7 @@
           <td class="media">
             {{ h.linked_user(user_id, maxlength=20) }}
           </td>
-          <td>{{ capacity }}</td>
+          <td>{{ _(capacity) }}</td>
           <td>
             <div class="btn-group pull-right">
                 <a class="btn btn-default btn-sm" href="{{ h.url_for('dataset.new_collaborator', id=pkg_dict.name, user_id=user_id) }}" title="{{ _('Edit') }}">
