@@ -424,8 +424,10 @@ def resources(package_type: str, id: str) -> Union[Response, str]:
         package_show = get_action("package_show")
         pkg_dict = package_show(context, data_dict)
         pkg = context["package"]
-    except (NotFound, NotAuthorized):
+    except NotFound:
         return base.abort(404, _("Dataset not found"))
+    except NotAuthorized:
+        return base.abort(403, _("Not authorized to see this page"))
 
     package_type = pkg_dict["type"] or "dataset"
     _setup_template_variables(context, {"id": id}, package_type=package_type)
@@ -528,20 +530,13 @@ def read(package_type: str, id: str) -> Union[Response, str]:
             404, _("Dataset not found or you have no permission to view it")
         )
     except NotAuthorized:
-        if config.get("ckan.auth.reveal_private_datasets"):
-            if current_user.is_authenticated:
-                return base.abort(
-                    403, _("Unauthorized to read package %s") % id
-                )
-            else:
-                return h.redirect_to(
-                    "user.login",
-                    came_from=h.url_for("{}.read".format(package_type), id=id),
-                )
-        return base.abort(
-            404, _("Dataset not found or you have no permission to view it")
-        )
-
+        if current_user.is_authenticated:
+            return base.abort(403, _("Unauthorized to read package %s") % id)
+        else:
+            return h.redirect_to(
+                "user.login",
+                came_from=h.url_for("{}.read".format(package_type), id=id),
+            )
     g.pkg_dict = pkg_dict
     g.pkg = pkg
 
@@ -869,8 +864,10 @@ class EditView(MethodView):
             if data:
                 old_data.update(data)
             data = old_data
-        except (NotFound, NotAuthorized):
+        except NotFound:
             return base.abort(404, _("Dataset not found"))
+        except NotAuthorized:
+            return base.abort(403, _("Not authorized to see this page"))
         assert data is not None
         # are we doing a multiphase add?
         if data.get("state", "").startswith("draft"):

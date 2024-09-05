@@ -439,8 +439,10 @@ def _get_group_dict(id: str, group_type: str) -> dict[str, Any]:
     try:
         group_show = _action("group_show")
         return group_show(context, {"id": id, "include_datasets": False})
-    except (NotFound, NotAuthorized):
+    except NotFound:
         base.abort(404, _("Group not found"))
+    except NotAuthorized:
+        base.abort(403, _("Not authorized to see this page"))
 
 
 def read(
@@ -490,8 +492,10 @@ def read(
 
         group_show = _action("group_show")
         group_dict = group_show(context, data_dict)
-    except (NotFound, NotAuthorized):
+    except NotFound:
         base.abort(404, _("Group not found"))
+    except NotAuthorized:
+        base.abort(403, _("Not authorized to see this page"))
 
     # if the user specified a group id, redirect to the group name
     if (
@@ -622,7 +626,11 @@ def member_delete(
             _action("group_member_delete")(
                 context, {"id": id, "user_id": user_id}
             )
-            message = _("Group member has been deleted") if group_type == "group" else _("Organization member has been deleted")
+            message = (
+                _("Group member has been deleted")
+                if group_type == "group"
+                else _("Organization member has been deleted")
+            )
             h.flash_notice(message)
             return h.redirect_to("{}.members".format(group_type), id=id)
         user_show = _action("user_show")
@@ -971,8 +979,10 @@ class CreateGroupView(MethodView):
         try:
             group_create = _action("group_create")
             group = group_create(context, data_dict)
-        except (NotFound, NotAuthorized):
+        except NotFound:
             base.abort(404, _("Group not found"))
+        except NotAuthorized:
+            base.abort(403, _("Not authorized to see this page"))
         except ValidationError as e:
             errors = e.error_dict
             error_summary = e.error_summary
@@ -1088,8 +1098,10 @@ class EditGroupView(MethodView):
         try:
             group_update = _action("group_update")
             group = group_update(context, data_dict)
-        except (NotFound, NotAuthorized):
+        except NotFound:
             base.abort(404, _("Organization not found"))
+        except NotAuthorized:
+            base.abort(403, _("Not authorized to see this page"))
         except ValidationError as e:
             errors = e.error_dict
             error_summary = e.error_summary
@@ -1122,8 +1134,10 @@ class EditGroupView(MethodView):
             check_access_to_group(context, {"id": id})
             group_show = _action("group_show")
             group_dict = group_show(context, data_dict)
-        except (NotFound, NotAuthorized):
+        except NotFound:
             base.abort(404, _("Group not found"))
+        except NotAuthorized:
+            base.abort(403, _("Not authorized to see this page"))
         data = data or group_dict
         assert data is not None
         errors = errors or {}
@@ -1181,7 +1195,11 @@ class DeleteGroupView(MethodView):
         try:
             group_delete = _action("group_delete")
             group_delete(context, {"id": id})
-            group_label = _("Group has been deleted") if group_type == "group" else _("Organization has been deleted")
+            group_label = (
+                _("Group has been deleted")
+                if group_type == "group"
+                else _("Organization has been deleted")
+            )
             h.flash_notice(_("%s has been deleted.") % _(group_label))
         except NotAuthorized:
             base.abort(403, _("Unauthorized to delete group %s") % id)
@@ -1398,7 +1416,6 @@ def before_request() -> None:
     except NotAuthorized:
         session.delete()
         return h.redirect_to("user.login")  # type: ignore
-
 
 
 def register_group_plugin_rules(blueprint: Blueprint) -> None:

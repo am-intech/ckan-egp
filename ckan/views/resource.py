@@ -164,19 +164,17 @@ def read(package_type: str, id: str, resource_id: str) -> Union[Response, str]:
     except NotFound:
         return base.abort(404, _("Dataset not found"))
     except NotAuthorized:
-        if config.get("ckan.auth.reveal_private_datasets"):
-            if current_user.is_authenticated:
-                return base.abort(
-                    403, _("Unauthorized to read resource %s") % resource_id
-                )
-            else:
-                return h.redirect_to(
-                    "user.login",
-                    came_from=h.url_for(
-                        "resource.read", id=id, resource_id=resource_id
-                    ),
-                )
-        return base.abort(404, _("Dataset not found"))
+        if current_user.is_authenticated:
+            return base.abort(
+                403, _("Unauthorized to read resource %s") % resource_id
+            )
+        else:
+            return h.redirect_to(
+                "user.login",
+                came_from=h.url_for(
+                    "resource.read", id=id, resource_id=resource_id
+                ),
+            )
 
     resource = None
     for res in package.get("resources", []):
@@ -676,8 +674,10 @@ def views(package_type: str, id: str, resource_id: str) -> str:
     try:
         pkg_dict = get_action("package_show")(context, data_dict)
         pkg = context["package"]
-    except (NotFound, NotAuthorized):
+    except NotFound:
         return base.abort(404, _("Dataset not found"))
+    except NotAuthorized:
+        return base.abort(403, _("Not authorized to see this page"))
 
     try:
         resource_show = get_action("resource_show")

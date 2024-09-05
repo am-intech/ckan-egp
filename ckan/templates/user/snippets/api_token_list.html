@@ -34,12 +34,15 @@
           {% endblock token_cell_last_access %}
           {% block token_cell_actions %}
             <td>
-              {% set action = h.url_for("user.api_token_revoke", id=user['name'], jti=token['id']) %}
-              <form action="{{ action }}" method="POST">
+              {% set revoke_action = h.url_for("user.api_token_revoke", id=user['name'], jti=token['id']) %}
+              <form action="{{ revoke_action }}" method="POST">
                 {{ h.csrf_input() }}
                 <div class="btn-group">
-                  <button type="submit" href="{{ action }}" class="btn btn-danger btn-sm" title="{{ _('Revoke') }}" data-module="confirm-action">
+                  <button type="submit" href="{{ revoke_action }}" class="btn btn-danger btn-sm" title="{{ _('Revoke') }}" data-module="confirm-action">
                     <i class="fa fa-times"></i>
+                  </button>
+                  <button type="button" class="btn btn-light btn-sm" title="{{ _('Copy') }}" onclick="(() => navigator.clipboard.writeText('{{token.encoded}}'))();">
+                    <i class="fa fa-copy"></i>
                   </button>
                 </div>
               </form>

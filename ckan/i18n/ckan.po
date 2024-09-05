@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ckan 2.10.2b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-08-30 17:26+0300\n"
-"PO-Revision-Date: 2024-09-03 14:10+0300\n"
+"POT-Creation-Date: 2024-09-05 10:47+0300\n"
+"PO-Revision-Date: 2024-09-05 10:51+0300\n"
 "Last-Translator: Adrià Mercader <amercadero@gmail.com>, 2022\n"
 "Language-Team: Russian (https://app.transifex.com/okfn/teams/11162/ru/)\n"
 "Language: ru\n"
@@ -226,7 +226,7 @@ msgstr "группа"
 #: ckan/lib/navl/dictization_functions.py:36
 #: ckan/lib/navl/dictization_functions.py:39 ckan/lib/navl/validators.py:52
 #: ckan/lib/navl/validators.py:76 ckan/lib/navl/validators.py:131
-#: ckan/logic/action/get.py:2339 ckan/logic/action/update.py:271
+#: ckan/logic/action/get.py:2798 ckan/logic/action/update.py:271
 #: ckan/logic/action/update.py:503 ckan/logic/validators.py:687
 msgid "Missing value"
 msgstr "Значение отсутствует"
@@ -278,8 +278,8 @@ msgstr "Тег словаря \"%s\" не существует"
 #: ckan/logic/validators.py:247 ckan/logic/validators.py:269
 #: ckan/logic/validators.py:281 ckan/logic/validators.py:304
 #: ckan/logic/validators.py:321 ckan/logic/validators.py:334
-#: ckan/logic/validators.py:815 ckan/views/api.py:304 ckan/views/group.py:535
-#: ckan/views/group.py:800 ckan/views/group.py:1247 ckan/views/group.py:1325
+#: ckan/logic/validators.py:815 ckan/views/api.py:304 ckan/views/group.py:539
+#: ckan/views/group.py:808 ckan/views/group.py:1265 ckan/views/group.py:1343
 #: ckanext/activity/logic/validators.py:28
 msgid "Not found"
 msgstr "Не найдено"
@@ -592,12 +592,12 @@ msgstr "Значение не задано"
 msgid "Role must be one of \"{}\""
 msgstr "Роль должна быть одной из \"{}\""
 
-#: ckan/logic/action/create.py:712 ckan/views/dataset.py:415
-#: ckan/views/dataset.py:427 ckan/views/dataset.py:691 ckan/views/dataset.py:835
-#: ckan/views/dataset.py:872 ckan/views/dataset.py:965 ckan/views/dataset.py:979
-#: ckan/views/dataset.py:1085 ckan/views/dataset.py:1124 ckan/views/dataset.py:1222
-#: ckan/views/dataset.py:1321 ckan/views/resource.py:165 ckan/views/resource.py:179
-#: ckan/views/resource.py:680 ckan/views/resource.py:737 ckan/views/resource.py:795
+#: ckan/logic/action/create.py:712 ckan/views/dataset.py:416
+#: ckan/views/dataset.py:428 ckan/views/dataset.py:687 ckan/views/dataset.py:831
+#: ckan/views/dataset.py:868 ckan/views/dataset.py:963 ckan/views/dataset.py:977
+#: ckan/views/dataset.py:1083 ckan/views/dataset.py:1122 ckan/views/dataset.py:1220
+#: ckan/views/dataset.py:1319 ckan/views/resource.py:165 ckan/views/resource.py:678
+#: ckan/views/resource.py:737 ckan/views/resource.py:795
 #: ckanext/activity/views.py:113 ckanext/activity/views.py:123
 #: ckanext/activity/views.py:219 ckanext/activity/views.py:251
 #: ckanext/activity/views.py:332
@@ -605,14 +605,14 @@ msgid "Dataset not found"
 msgstr "Массив с наборами данных не найден"
 
 #: ckan/logic/action/create.py:716 ckan/logic/action/delete.py:359
-#: ckan/logic/auth/update.py:200 ckan/views/dataset.py:1437 ckan/views/group.py:617
+#: ckan/logic/auth/update.py:200 ckan/views/dataset.py:1435 ckan/views/group.py:621
 #: ckan/views/user.py:72 ckan/views/user.py:303 ckan/views/user.py:597
 #: ckan/views/user.py:647 ckan/views/user.py:745
 msgid "User not found"
 msgstr "Пользователь не найден"
 
 #: ckan/logic/action/create.py:720 ckan/logic/action/delete.py:351
-#: ckan/logic/action/get.py:281 ckan/logic/action/get.py:327
+#: ckan/logic/action/get.py:315 ckan/logic/action/get.py:367
 msgid "Dataset collaborators not enabled"
 msgstr "Функционал соавторства не активирован"
 
@@ -645,17 +645,17 @@ msgstr ""
 "Вы должны быть авторизованы, чтобы следить за событиями массивов с наборами "
 "данных."
 
-#: ckan/logic/action/create.py:1381 ckan/views/dataset.py:1239
-#: ckan/views/dataset.py:1257 ckan/views/feed.py:263 ckan/views/group.py:479
-#: ckan/views/group.py:1057 ckan/views/group.py:1071 ckan/views/group.py:1092
+#: ckan/logic/action/create.py:1381 ckan/views/dataset.py:1237
+#: ckan/views/dataset.py:1255 ckan/views/feed.py:263 ckan/views/group.py:481
+#: ckan/views/group.py:1067 ckan/views/group.py:1081 ckan/views/group.py:1102
 msgid "Organization not found"
 msgstr "Категория данных не найдена"
 
-#: ckan/logic/action/create.py:1381 ckan/views/dataset.py:1141
-#: ckan/views/dataset.py:1159 ckan/views/feed.py:242 ckan/views/group.py:443
-#: ckan/views/group.py:477 ckan/views/group.py:494 ckan/views/group.py:574
-#: ckan/views/group.py:634 ckan/views/group.py:819 ckan/views/group.py:975
-#: ckan/views/group.py:1126 ckan/views/group.py:1189 ckan/views/group.py:1278
+#: ckan/logic/action/create.py:1381 ckan/views/dataset.py:1139
+#: ckan/views/dataset.py:1157 ckan/views/feed.py:242 ckan/views/group.py:443
+#: ckan/views/group.py:479 ckan/views/group.py:496 ckan/views/group.py:578
+#: ckan/views/group.py:642 ckan/views/group.py:827 ckan/views/group.py:983
+#: ckan/views/group.py:1138 ckan/views/group.py:1207 ckan/views/group.py:1296
 #: ckanext/activity/views.py:520
 msgid "Group not found"
 msgstr "Группа не найдена"
@@ -668,7 +668,7 @@ msgstr "Пользователь {username} не существует."
 msgid "You must be logged in to follow a group."
 msgstr "Вы должны быть авторизованы, чтобы следить за событиями группы."
 
-#: ckan/logic/action/delete.py:355 ckan/logic/action/get.py:275
+#: ckan/logic/action/delete.py:355 ckan/logic/action/get.py:309
 msgid "Package not found"
 msgstr "Набор данных не найден"
 
@@ -679,11 +679,11 @@ msgstr ""
 "наборами данных"
 
 #: ckan/logic/action/delete.py:608 ckan/logic/action/delete.py:634
-#: ckan/logic/action/get.py:2728 ckan/logic/action/update.py:1065
+#: ckan/logic/action/get.py:3206 ckan/logic/action/update.py:1065
 msgid "id not in data"
 msgstr "идентификатор отсутствуюет в данных"
 
-#: ckan/logic/action/delete.py:612 ckan/logic/action/get.py:2731
+#: ckan/logic/action/delete.py:612 ckan/logic/action/get.py:3209
 #: ckan/logic/action/update.py:1069
 #, python-format
 msgid "Could not find vocabulary \"%s\""
@@ -702,32 +702,32 @@ msgstr "Вы должны быть авторизованы, чтобы отме
 msgid "You are not following {0}."
 msgstr "Вы не следите за {0}."
 
-#: ckan/logic/action/get.py:289 ckan/logic/action/get.py:339
+#: ckan/logic/action/get.py:324 ckan/logic/action/get.py:381
 msgid "Capacity must be one of \"{}\""
 msgstr "Вместимость должна быть одной из \"{}\""
 
-#: ckan/logic/action/get.py:333
+#: ckan/logic/action/get.py:374
 msgid "Not allowed to retrieve collaborators"
 msgstr "Не разрешено возвращать соавторов"
 
-#: ckan/logic/action/get.py:1181 ckan/logic/action/update.py:83
+#: ckan/logic/action/get.py:1298 ckan/logic/action/update.py:83
 #: ckan/logic/action/update.py:103
 msgid "Resource was not found."
 msgstr "Набор данных не был найден."
 
-#: ckan/logic/action/get.py:1266
+#: ckan/logic/action/get.py:1385
 msgid "Parameter is not an bool"
 msgstr "Параметр не является булевым значением"
 
-#: ckan/logic/action/get.py:1785 ckan/logic/action/get.py:1791
+#: ckan/logic/action/get.py:1950 ckan/logic/action/get.py:1973
 msgid "Without org"
 msgstr "Без организации"
 
-#: ckan/logic/action/get.py:2348
+#: ckan/logic/action/get.py:2806
 msgid "Must be <field>:<value> pair(s)"
 msgstr "Должна быть пара(ы): <field>:<value>"
 
-#: ckan/logic/action/get.py:2360
+#: ckan/logic/action/get.py:2819
 msgid "Field \"{field}\" not recognised in resource_search."
 msgstr "Поле \"{field}\" не отображается при поиске наборов данных."
 
@@ -1728,16 +1728,9 @@ msgid "Are you sure you want to delete member - {name}?"
 msgstr "Вы уверены, что хотите удалить участника?"
 
 #: ckan/templates/group/edit.html:4 ckan/templates/group/edit_base.html:4
-#: ckan/templates/group/index.html:19 ckan/templates/group/members.html:3
-#: ckan/templates/group/new.html:12 ckan/templates/group/read_base.html:4
-#: ckan/templates/group/read_base.html:7 ckan/templates/package/base.html:16
-#: ckan/templates/package/group_list.html:7
-#: ckan/templates/package/read_base.html:23 ckan/views/dataset.py:305
-#: ckan/views/group.py:337 ckan/views/home.py:74
-msgid "Organizations"
-msgstr "Категории данных"
-
 #: ckan/templates/group/index.html:4 ckan/templates/group/index.html:7
+#: ckan/templates/group/new.html:11 ckan/templates/group/read_base.html:4
+#: ckan/templates/group/read_base.html:7
 msgid "Organizations."
 msgstr "Категории данных"
 
@@ -1774,6 +1767,13 @@ msgstr "Подписчики"
 #: ckan/templates/group/index.html:14
 msgid "Add Organization"
 msgstr "Добавить категорию данных"
+
+#: ckan/templates/group/index.html:19 ckan/templates/group/members.html:3
+#: ckan/templates/package/base.html:16 ckan/templates/package/group_list.html:7
+#: ckan/templates/package/read_base.html:23 ckan/views/dataset.py:305
+#: ckan/views/group.py:337 ckan/views/home.py:74
+msgid "Organizations"
+msgstr "Категории данных"
 
 #: ckan/templates/group/index.html:21
 msgid "Search organizations"
@@ -2209,7 +2209,7 @@ msgstr "Добавить группу"
 
 #: ckan/templates/organization/index.html:20
 msgid "Search groups"
-msgstr "Поиск групп массивов с наборами данных"
+msgstr "Поиск групп массивов"
 
 #: ckan/templates/organization/member_new.html:30
 #: ckan/templates/organization/member_new.html:32
@@ -2280,7 +2280,7 @@ msgstr ""
 "\n"
 "Каждый массив геоаналитических данных состоит из наборов данных одного и того же "
 "типа, сгруппированных по годам и уровням территориального деления "
-"(административным районам, квадратам 500х500м. и пр.)\n"
+"(административным районам, квадратам 500х500м. и пр.).\n"
 " "
 
 #: ckan/templates/organization/snippets/organization_form.html:12
@@ -2307,12 +2307,9 @@ msgstr "Просмотр {organization_name}"
 
 #: ckan/templates/package/base.html:24 ckan/templates/package/new.html:9
 #: ckan/templates/package/snippets/new_package_breadcrumb.html:2
-msgid "Create Dataset."
-msgstr "Создать массив с наборами данных"
-
 #: ckan/templates/package/snippets/stages.html:25
 #: ckan/templates/package/snippets/stages.html:27
-msgid "Create Dataset"
+msgid "Create Dataset."
 msgstr "Создать массив с наборами данных"
 
 #: ckan/templates/package/base_form_page.html:19
@@ -2812,10 +2809,6 @@ msgstr "http://example.com/external-data.csv"
 msgid "eg. January 2011 Gold Prices"
 msgstr "например, название файла или таблицы"
 
-#: ckan/templates/package/snippets/resource_form.html:40
-msgid "Some useful notes about the data"
-msgstr "Полезные заметки о данных"
-
 #: ckan/templates/package/snippets/resource_form.html:45
 #: ckan/templates/package/snippets/resource_info.html:19
 msgid "Format"
@@ -3007,7 +3000,7 @@ msgstr "Показать только популярное {facet_type}"
 
 #: ckan/templates/snippets/facet_list.html:83
 msgid "There are no {facet_type} that match this search"
-msgstr "{facet_type} не найдены"
+msgstr "{facet_type} не найдено"
 
 #: ckan/templates/snippets/home_breadcrumb_item.html:2
 msgid "Home"
@@ -3079,7 +3072,7 @@ msgid_plural "{number} datasets found for \"{query}\""
 msgstr[0] "{number} массив с наборами данных найден для \"{query}\""
 msgstr[1] "{number} массива с наборами данных найдено для \"{query}\""
 msgstr[2] "{number} массивов с наборами данных найдено для \"{query}\""
-msgstr[3] "{number} массивы с наборами данных найдены для \"{query}\""
+msgstr[3] "{number} массивы с наборами данных найдено для \"{query}\""
 
 #: ckan/templates/snippets/search_result_text.html:16
 msgid "No datasets found for \"{query}\""
@@ -3103,7 +3096,7 @@ msgid_plural "{number} organizations found for \"{query}\""
 msgstr[0] "{number} категория данных найдена для \"{query}\""
 msgstr[1] "{number} категории данных найдено для \"{query}\""
 msgstr[2] "{number} категорий данных найдено для \"{query}\""
-msgstr[3] "{number} категории данных найдены для \"{query}\""
+msgstr[3] "{number} категории данных найдено для \"{query}\""
 
 #: ckan/templates/snippets/search_result_text.html:22
 msgid "No organizations found for \"{query}\""
@@ -3115,7 +3108,7 @@ msgid_plural "{number} organizations found"
 msgstr[0] "{number} категория данных найдена"
 msgstr[1] "{number} категории данных найдено"
 msgstr[2] "{number} категорий данных найдено"
-msgstr[3] "{number} категории данных найдены"
+msgstr[3] "{number} категории данных найдено"
 
 #: ckan/templates/snippets/search_result_text.html:24
 msgid "No organizations found"
@@ -3127,7 +3120,7 @@ msgid_plural "{number} groups found for \"{query}\""
 msgstr[0] "{number} группа массивов данных найдена для \"{query}\""
 msgstr[1] "{number} группы массивов данных найдено для \"{query}\""
 msgstr[2] "{number} групп массивов данных найдено для \"{query}\""
-msgstr[3] "{number} группы найдены для \"{query}\""
+msgstr[3] "{number} группы найдено для \"{query}\""
 
 #: ckan/templates/snippets/search_result_text.html:28
 msgid "No groups found for \"{query}\""
@@ -3139,7 +3132,7 @@ msgid_plural "{number} groups found"
 msgstr[0] "{number} группа массивов данных найдена"
 msgstr[1] "{number} группы массивов данных найдено"
 msgstr[2] "{number} групп массивов данных найдено"
-msgstr[3] "{number} группы найдены"
+msgstr[3] "{number} группы найдено"
 
 #: ckan/templates/snippets/search_result_text.html:30
 msgid "No groups found"
@@ -3158,7 +3151,6 @@ msgstr "Социальные сети"
 #: ckanext/example_theme_docs/v19_02_error_handling/assets/example_theme_popover.js:8
 #: ckanext/example_theme_docs/v20_pubsub/assets/example_theme_popover.js:8
 #: ckanext/example_theme_docs/v21_custom_jquery_plugin/assets/example_theme_popover.js:8
-#: ckanext/reclineview/theme/templates/recline_view.html:15
 #: ckanext/textview/theme/templates/text_view.html:9
 msgid "Loading..."
 msgstr "Идет загрузка..."
@@ -3506,6 +3498,10 @@ msgstr "Никогда"
 msgid "Revoke"
 msgstr "Отменить"
 
+#: ckan/templates/user/snippets/api_token_list.html:44
+msgid "Copy"
+msgstr "Копировать"
+
 #: ckan/templates/user/snippets/followers.html:9
 msgid "No followers"
 msgstr "Нет подписчиков"
@@ -3532,11 +3528,14 @@ msgstr "Поиск, популярные теги и статистика"
 
 #: ckan/views/admin.py:95 ckan/views/api.py:49 ckan/views/dashboard.py:26
 #: ckan/views/dashboard.py:37 ckan/views/dataset.py:60 ckan/views/dataset.py:254
-#: ckan/views/feed.py:33 ckan/views/feed.py:244 ckan/views/feed.py:265
-#: ckan/views/group.py:173 ckan/views/group.py:1378 ckan/views/group.py:1392
-#: ckan/views/home.py:70 ckan/views/resource.py:68 ckan/views/resource.py:82
-#: ckan/views/user.py:74 ckan/views/user.py:102 ckan/views/user.py:132
-#: ckanext/activity/views.py:764 ckanext/datapusher/views.py:60
+#: ckan/views/dataset.py:430 ckan/views/dataset.py:870 ckan/views/feed.py:33
+#: ckan/views/feed.py:244 ckan/views/feed.py:265 ckan/views/group.py:173
+#: ckan/views/group.py:445 ckan/views/group.py:498 ckan/views/group.py:985
+#: ckan/views/group.py:1104 ckan/views/group.py:1140 ckan/views/group.py:1396
+#: ckan/views/group.py:1410 ckan/views/home.py:70 ckan/views/resource.py:68
+#: ckan/views/resource.py:82 ckan/views/resource.py:680 ckan/views/user.py:74
+#: ckan/views/user.py:102 ckan/views/user.py:132 ckanext/activity/views.py:764
+#: ckanext/datapusher/views.py:60
 msgid "Not authorized to see this page"
 msgstr "Недостаточно прав для просмотра этой страницы"
 
@@ -3610,197 +3609,197 @@ msgstr "Отказано в доступе"
 msgid "Formats"
 msgstr "Форматы"
 
-#: ckan/views/dataset.py:359
+#: ckan/views/dataset.py:360
 msgid "Invalid search query: {error_message}"
 msgstr "Неверный запрос поиска: {error_message}"
 
-#: ckan/views/dataset.py:381
+#: ckan/views/dataset.py:382
 msgid "Parameter \"{parameter_name}\" is not an integer"
 msgstr "Параметр \"{parameter_name}\" не является целым числом"
 
-#: ckan/views/dataset.py:419 ckan/views/dataset.py:893 ckan/views/group.py:867
-#: ckan/views/resource.py:484 ckan/views/resource.py:673 ckan/views/resource.py:786
+#: ckan/views/dataset.py:420 ckan/views/dataset.py:891 ckan/views/group.py:875
+#: ckan/views/resource.py:482 ckan/views/resource.py:671 ckan/views/resource.py:786
 #, python-format
 msgid "User %r not authorized to edit %s"
 msgstr "Пользователь %r не имеет достаточно прав для редактирования %s"
 
-#: ckan/views/dataset.py:527 ckan/views/dataset.py:541
+#: ckan/views/dataset.py:530
 msgid "Dataset not found or you have no permission to view it"
 msgstr ""
 "Массив с наборами данных не найден или у вас нет разрешения на его просмотр"
 
-#: ckan/views/dataset.py:533 ckan/views/dataset.py:833 ckan/views/dataset.py:1087
-#, fuzzy, python-format
+#: ckan/views/dataset.py:534 ckan/views/dataset.py:829 ckan/views/dataset.py:1085
+#, python-format
 msgid "Unauthorized to read package %s"
-msgstr "Недостаточно прав для просмотра этой страницы"
+msgstr "Недостаточно прав для просмотра массива с наборами данных %s"
 
-#: ckan/views/dataset.py:585
+#: ckan/views/dataset.py:581
 msgid "Viewing datasets of type \"{package_type}\" is not supported ({file_!r})."
 msgstr ""
 "Просмотр массива с наборами данных типа \"{package_type}\" не поддерживается "
 "({file_!r})."
 
-#: ckan/views/dataset.py:611
+#: ckan/views/dataset.py:607
 msgid "Unauthorized to create a package"
 msgstr "Недостаточно прав для создания набора данных"
 
-#: ckan/views/dataset.py:626 ckan/views/dataset.py:813 ckan/views/dataset.py:1432
-#: ckan/views/group.py:967 ckan/views/group.py:1085 ckan/views/user.py:288
+#: ckan/views/dataset.py:622 ckan/views/dataset.py:809 ckan/views/dataset.py:1430
+#: ckan/views/group.py:975 ckan/views/group.py:1095 ckan/views/user.py:288
 #: ckan/views/user.py:649
 msgid "Integrity Error"
 msgstr "Ошибка целостности"
 
-#: ckan/views/dataset.py:689
+#: ckan/views/dataset.py:685
 msgid "Unauthorized to read package"
 msgstr "Недостаточно прав для чтения набора данных"
 
-#: ckan/views/dataset.py:698
+#: ckan/views/dataset.py:694
 msgid "Unable to add package to search index."
 msgstr "Невозможно добавить набор данных в поисковый индекс."
 
-#: ckan/views/dataset.py:842
+#: ckan/views/dataset.py:838
 msgid "Unable to update search index."
 msgstr "Невозможно обновить поисковый индекс."
 
-#: ckan/views/dataset.py:967 ckan/views/dataset.py:981 ckan/views/resource.py:595
+#: ckan/views/dataset.py:965 ckan/views/dataset.py:979 ckan/views/resource.py:593
 #, python-format
 msgid "Unauthorized to delete package %s"
 msgstr "Недостаточно прав для удаления набора данных %s"
 
-#: ckan/views/dataset.py:969
+#: ckan/views/dataset.py:967
 msgid "Dataset has been deleted."
 msgstr "Массив с наборами данных был удалён."
 
-#: ckan/views/dataset.py:1020 ckan/views/group.py:685 ckan/views/user.py:676
+#: ckan/views/dataset.py:1018 ckan/views/group.py:693 ckan/views/user.py:676
 msgid "You are now following {0}"
 msgstr "Теперь вы следуете за {0}"
 
-#: ckan/views/dataset.py:1055 ckan/views/group.py:711 ckan/views/user.py:699
+#: ckan/views/dataset.py:1053 ckan/views/group.py:719 ckan/views/user.py:699
 msgid "You are no longer following {0}"
 msgstr "Вы более не следуете за {0}"
 
-#: ckan/views/dataset.py:1318
+#: ckan/views/dataset.py:1316
 msgid "Unauthorized to read collaborators {}"
 msgstr "Недостаточно прав для просмотра соавторов {}"
 
-#: ckan/views/dataset.py:1351
+#: ckan/views/dataset.py:1349
 msgid "Unauthorized to delete collaborators {}"
 msgstr "Недостаточно прав для удаления соавторов {}"
 
-#: ckan/views/dataset.py:1357
+#: ckan/views/dataset.py:1355
 msgid "User removed from collaborators"
 msgstr "Пользователь удален из соавторов"
 
-#: ckan/views/dataset.py:1434
+#: ckan/views/dataset.py:1432
 msgid "Unauthorized to edit collaborators {}"
 msgstr "Недостаточно прав для редактирования соавторов {}"
 
-#: ckan/views/dataset.py:1443
+#: ckan/views/dataset.py:1441
 msgid "User added to collaborators"
 msgstr "Пользователь добавлен в соавторы"
 
-#: ckan/views/dataset.py:1475 ckan/views/resource.py:187 ckan/views/resource.py:266
-#: ckan/views/resource.py:544 ckan/views/resource.py:624 ckan/views/resource.py:637
+#: ckan/views/dataset.py:1473 ckan/views/resource.py:185 ckan/views/resource.py:264
+#: ckan/views/resource.py:542 ckan/views/resource.py:622 ckan/views/resource.py:635
 #: ckan/views/resource.py:689 ckan/views/resource.py:743 ckan/views/resource.py:800
 #: ckanext/activity/views.py:148 ckanext/datapusher/views.py:49
 #: ckanext/datastore/blueprint.py:158 ckanext/resourceproxy/blueprint.py:35
 msgid "Resource not found"
 msgstr "Набор данных не найден"
 
-#: ckan/views/dataset.py:1491
+#: ckan/views/dataset.py:1489
 msgid "admin"
 msgstr "Разработчик"
 
-#: ckan/views/dataset.py:1494
+#: ckan/views/dataset.py:1492
 msgid "editor"
 msgstr "Аналитик данных"
 
-#: ckan/views/dataset.py:1495
+#: ckan/views/dataset.py:1493
 msgid "member"
 msgstr "Функциональный пользователь"
 
 # | msgid "Unauthorized to read package %s"
-#: ckan/views/group.py:472 ckan/views/group.py:533 ckan/views/group.py:798
-#: ckan/views/group.py:1069 ckan/views/group.py:1245 ckan/views/group.py:1323
+#: ckan/views/group.py:474 ckan/views/group.py:537 ckan/views/group.py:806
+#: ckan/views/group.py:1079 ckan/views/group.py:1263 ckan/views/group.py:1341
 #, python-format
 msgid "Unauthorized to read %s"
 msgstr "Недостаточно прав для просмотра набора данных %s"
 
-#: ckan/views/group.py:578
+#: ckan/views/group.py:582
 #, python-format
 msgid "User %r not authorized to edit members of %s"
 msgstr "Пользователь %r не авторизован на редактирование участников %s"
 
-#: ckan/views/group.py:612 ckan/views/group.py:632
+#: ckan/views/group.py:616 ckan/views/group.py:640
 #, python-format
 msgid "Unauthorized to delete group %s members"
 msgstr "Недостаточно прав для удаления участников группы %s"
 
-#: ckan/views/group.py:625
+#: ckan/views/group.py:630
 msgid "Group member has been deleted"
 msgstr "Участник категории данных был удален"
 
-#: ckan/views/group.py:625
+#: ckan/views/group.py:632
 msgid "Organization member has been deleted"
 msgstr "Участник группы массивов данных был удален"
 
-#: ckan/views/group.py:737 ckan/views/user.py:724
+#: ckan/views/group.py:745 ckan/views/user.py:724
 #, python-format
 msgid "Unauthorized to view followers %s"
 msgstr "Недостаточно прав для просмотра следующих %s"
 
-#: ckan/views/group.py:805
+#: ckan/views/group.py:813
 msgid "Unauthorized to access"
 msgstr "Недостаточно прав для доступа"
 
-#: ckan/views/group.py:855
+#: ckan/views/group.py:863
 msgid "OrganizationGroup"
 msgstr "Категория данных/Группа"
 
-#: ckan/views/group.py:864
+#: ckan/views/group.py:872
 msgid "{} not found"
 msgstr "{} не найдено"
 
-#: ckan/views/group.py:916
+#: ckan/views/group.py:924
 msgid "Not authorized to perform bulk update"
 msgstr "Неавторизованы на массовое обновление"
 
-#: ckan/views/group.py:946
+#: ckan/views/group.py:954
 msgid "Unauthorized to create a group"
 msgstr "Недостаточно прав для создания группы"
 
-#: ckan/views/group.py:1055
+#: ckan/views/group.py:1065
 msgid "Unauthorized to create a organization"
 msgstr "Пользователь не имеет прав для создания категории данных"
 
-#: ckan/views/group.py:1173 ckan/views/group.py:1187
+#: ckan/views/group.py:1187 ckan/views/group.py:1205
 #, python-format
 msgid "Unauthorized to delete group %s"
 msgstr "Недостаточно прав чтобы удалить группу %s"
 
-#: ckan/views/group.py:1184
+#: ckan/views/group.py:1199
 msgid "Group has been deleted"
 msgstr "Категория данных была удалена"
 
-#: ckan/views/group.py:1184
+#: ckan/views/group.py:1201
 msgid "Organization has been deleted"
 msgstr "Группа массивов данных была удалена"
 
-#: ckan/views/group.py:1185
+#: ckan/views/group.py:1203
 #, python-format
 msgid "%s has been deleted."
 msgstr "Объект '%s' был удален."
 
-#: ckan/views/group.py:1191
+#: ckan/views/group.py:1209
 msgid "message"
 msgstr "сообщение"
 
-#: ckan/views/group.py:1231
+#: ckan/views/group.py:1249
 #, python-format
 msgid "Unauthorized to create group %s members"
 msgstr "Недостаточно прав для создания группы %s участников"
 
-#: ckan/views/group.py:1276
+#: ckan/views/group.py:1294
 #, python-format
 msgid "Unauthorized to add member to group %s"
 msgstr "Недостаточно прав для добавления участника в группу %s"
@@ -3817,57 +3816,57 @@ msgstr ""
 msgid "%s uses your email address if you need to reset your password."
 msgstr "%s использует ваш адрес электронной почты, если вам нужно сбросить пароль."
 
-#: ckan/views/resource.py:170 ckan/views/resource.py:691
+#: ckan/views/resource.py:169 ckan/views/resource.py:691
 #, python-format
 msgid "Unauthorized to read resource %s"
 msgstr "Недостаточно прав для просмотра набора данных %s"
 
-#: ckan/views/resource.py:211 ckan/views/resource.py:755
+#: ckan/views/resource.py:209 ckan/views/resource.py:755
 #: ckanext/activity/views.py:174
 msgid "Resource view not found"
 msgstr "Представление для набора данных не найдено"
 
-#: ckan/views/resource.py:268
+#: ckan/views/resource.py:266
 msgid "Not authorized to download resource"
 msgstr "Не авторизован для скачивания набора данных"
 
-#: ckan/views/resource.py:291
+#: ckan/views/resource.py:289
 msgid "No download is available"
 msgstr "Недоступна скачивание"
 
-#: ckan/views/resource.py:343
+#: ckan/views/resource.py:341
 msgid "Unauthorized to update dataset"
 msgstr "Недостаточно прав для обновления массива с наборами данных"
 
-#: ckan/views/resource.py:347 ckan/views/resource.py:388 ckan/views/resource.py:431
+#: ckan/views/resource.py:345 ckan/views/resource.py:386 ckan/views/resource.py:429
 msgid "The dataset {id} could not be found."
 msgstr "Массив с наборами данных {id} не найден."
 
-#: ckan/views/resource.py:351
+#: ckan/views/resource.py:349
 msgid "You must add at least one data resource"
 msgstr "Вы должны добавить хотя бы один набор данных"
 
-#: ckan/views/resource.py:355 ckanext/datapusher/helpers.py:26
+#: ckan/views/resource.py:353 ckanext/datapusher/helpers.py:26
 msgid "Error"
 msgstr "Ошибка"
 
-#: ckan/views/resource.py:385
+#: ckan/views/resource.py:383
 msgid "Unauthorized to create a resource"
 msgstr "Недостаточно прав для создания набора данных"
 
-#: ckan/views/resource.py:439
+#: ckan/views/resource.py:437
 msgid "Unauthorized to create a resource for this package"
 msgstr "Недостаточно прав для создания наборов данных в этом массиве данных"
 
-#: ckan/views/resource.py:520
+#: ckan/views/resource.py:518
 msgid "Unauthorized to edit this resource"
 msgstr "Недостаточно прав для редактирования данного набора данных"
 
-#: ckan/views/resource.py:610
+#: ckan/views/resource.py:608
 msgid "Resource has been deleted."
 msgstr "Набор данных был удален."
 
-#: ckan/views/resource.py:621 ckan/views/resource.py:634
+#: ckan/views/resource.py:619 ckan/views/resource.py:632
 #, python-format
 msgid "Unauthorized to delete resource %s"
 msgstr "Недостаточно прав для удаления набора данных %s"
@@ -5261,6 +5260,10 @@ msgstr "Автоматическое увеличение объектов"
 msgid "Cluster markers"
 msgstr "Маркеры кластера"
 
+#: ckanext/reclineview/theme/templates/recline_view.html:15
+msgid "Загрузка..."
+msgstr "Загрузка..."
+
 #: ckanext/resourceproxy/blueprint.py:40
 msgid "Invalid URL."
 msgstr "Некорректный URL."
@@ -5558,3 +5561,9 @@ msgstr ""
 
 #~ msgid "eg. A descriptive title"
 #~ msgstr "например, описательный заголовок"
+
+#~ msgid "Create Dataset"
+#~ msgstr "Создать массив с наборами данных"
+
+#~ msgid "Some useful notes about the data"
+#~ msgstr "Полезные заметки о данных"
