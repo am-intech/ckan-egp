@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: ckan 2.10.2b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2024-09-05 10:47+0300\n"
-"PO-Revision-Date: 2024-09-05 10:51+0300\n"
+"PO-Revision-Date: 2024-09-11 17:59+0300\n"
 "Last-Translator: Adrià Mercader <amercadero@gmail.com>, 2022\n"
 "Language-Team: Russian (https://app.transifex.com/okfn/teams/11162/ru/)\n"
 "Language: ru\n"
@@ -1290,7 +1290,14 @@ msgstr "Ошибка %(error_code)s"
 
 #: ckan/templates/error_document_template.html:16
 msgid "You might need to login to access this page."
-msgstr "Авторизируйтесь в системе, чтобы получить доступ к этой странице."
+msgstr ""
+"Авторизуйтесь в системе, чтобы получить доступ к этой странице. \n"
+"\n"
+"После авторизации будет осуществлен переход на главную страницу Подсистемы "
+"каталогизации и распространения данных.\n"
+"\n"
+"Для просмотра страницы по предоставленной ссылке еще раз перейдите по этой "
+"ссылке."
 
 #: ckan/templates/error_document_template.html:16
 msgid "Click here to login"
@@ -1598,11 +1605,11 @@ msgstr "Удаленные массивы с наборами данных"
 
 #: ckan/templates/admin/snippets/data_type.html:13
 msgid "Deleted organizations"
-msgstr "Удаленные категории данных"
+msgstr "Удаленные группы массивов данных"
 
 #: ckan/templates/admin/snippets/data_type.html:15
 msgid "Deleted groups"
-msgstr "Удаленные группы"
+msgstr "Удаленные категории данных"
 
 #: ckan/templates/admin/snippets/data_type.html:51
 msgid "Purge"
@@ -1733,6 +1740,19 @@ msgstr "Вы уверены, что хотите удалить участник
 #: ckan/templates/group/read_base.html:7
 msgid "Organizations."
 msgstr "Категории данных"
+
+#: ckan/views/dataset.py:321
+msgid "Organizations!"
+msgstr "Категорий данных"
+
+#: ckan/views/dataset.py:322
+msgid "Groups!"
+msgstr "Групп массивов данных"
+
+#: ckan/views/dataset.py:323
+msgid "Tags!"
+msgstr "Тегов"
+
 
 #: ckan/templates/group/edit.html:7 ckan/templates/group/edit_base.html:4
 #: ckan/templates/group/read_base.html:13 ckan/templates/organization/edit.html:9
@@ -2209,7 +2229,7 @@ msgstr "Добавить группу"
 
 #: ckan/templates/organization/index.html:20
 msgid "Search groups"
-msgstr "Поиск групп массивов"
+msgstr "Поиск групп массивов данных"
 
 #: ckan/templates/organization/member_new.html:30
 #: ckan/templates/organization/member_new.html:32
@@ -2266,7 +2286,7 @@ msgstr "Массивы с наборами данных в группе: {group}
 
 #: ckan/templates/organization/snippets/helper.html:15
 msgid "What are Groups?"
-msgstr "Информация о группах"
+msgstr "Информация о группах массивов данных"
 
 #: ckan/templates/organization/snippets/helper.html:19
 msgid ""
@@ -2280,7 +2300,7 @@ msgstr ""
 "\n"
 "Каждый массив геоаналитических данных состоит из наборов данных одного и того же "
 "типа, сгруппированных по годам и уровням территориального деления "
-"(административным районам, квадратам 500х500м. и пр.).\n"
+"(административным районам, квадратам 500х500м и пр.).\n"
 " "
 
 #: ckan/templates/organization/snippets/organization_form.html:12
@@ -2992,7 +3012,7 @@ msgstr "Уведомление URL"
 
 #: ckan/templates/snippets/facet_list.html:76
 msgid "Show More {facet_type}"
-msgstr "Раскрыть '{facet_type}'"
+msgstr "Раскрыть {facet_type}"
 
 #: ckan/templates/snippets/facet_list.html:79
 msgid "Show Only Popular {facet_type}"
@@ -3069,10 +3089,10 @@ msgstr ""
 #: ckan/templates/snippets/search_result_text.html:15
 msgid "{number} dataset found for \"{query}\""
 msgid_plural "{number} datasets found for \"{query}\""
-msgstr[0] "{number} массив с наборами данных найден для \"{query}\""
-msgstr[1] "{number} массива с наборами данных найдено для \"{query}\""
-msgstr[2] "{number} массивов с наборами данных найдено для \"{query}\""
-msgstr[3] "{number} массивы с наборами данных найдено для \"{query}\""
+msgstr[0] "{number} массив с наборами данных найден"
+msgstr[1] "{number} массива с наборами данных найдено"
+msgstr[2] "{number} массивов с наборами данных найдено"
+msgstr[3] "{number} массивы с наборами данных найдено"
 
 #: ckan/templates/snippets/search_result_text.html:16
 msgid "No datasets found for \"{query}\""
@@ -3088,15 +3108,15 @@ msgstr[3] "{number} массивы с наборами данных найден
 
 #: ckan/templates/snippets/search_result_text.html:18
 msgid "No datasets found"
-msgstr "Массивы с наборами данных не найдены"
+msgstr "Массивов с наборами данных не найдено"
 
 #: ckan/templates/snippets/search_result_text.html:21
 msgid "{number} organization found for \"{query}\""
 msgid_plural "{number} organizations found for \"{query}\""
-msgstr[0] "{number} категория данных найдена для \"{query}\""
-msgstr[1] "{number} категории данных найдено для \"{query}\""
-msgstr[2] "{number} категорий данных найдено для \"{query}\""
-msgstr[3] "{number} категории данных найдено для \"{query}\""
+msgstr[0] "{number} категория данных найдена"
+msgstr[1] "{number} категории данных найдено"
+msgstr[2] "{number} категорий данных найдено"
+msgstr[3] "{number} категории данных найдено"
 
 #: ckan/templates/snippets/search_result_text.html:22
 msgid "No organizations found for \"{query}\""
@@ -3112,19 +3132,19 @@ msgstr[3] "{number} категории данных найдено"
 
 #: ckan/templates/snippets/search_result_text.html:24
 msgid "No organizations found"
-msgstr "Категории данных не найдены"
+msgstr "Категорий данных не найдено"
 
 #: ckan/templates/snippets/search_result_text.html:27
 msgid "{number} group found for \"{query}\""
 msgid_plural "{number} groups found for \"{query}\""
-msgstr[0] "{number} группа массивов данных найдена для \"{query}\""
-msgstr[1] "{number} группы массивов данных найдено для \"{query}\""
-msgstr[2] "{number} групп массивов данных найдено для \"{query}\""
-msgstr[3] "{number} группы найдено для \"{query}\""
+msgstr[0] "{number} группа массивов данных найдена"
+msgstr[1] "{number} группы массивов данных найдено"
+msgstr[2] "{number} групп массивов данных найдено"
+msgstr[3] "{number} группы найдено"
 
 #: ckan/templates/snippets/search_result_text.html:28
 msgid "No groups found for \"{query}\""
-msgstr "По запросу \"{query}\" групп массивов не найдено"
+msgstr "По запросу \"{query}\" групп массивов данных не найдено"
 
 #: ckan/templates/snippets/search_result_text.html:29
 msgid "{number} group found"
@@ -3136,7 +3156,7 @@ msgstr[3] "{number} группы найдено"
 
 #: ckan/templates/snippets/search_result_text.html:30
 msgid "No groups found"
-msgstr "Группы масссивов данных не найдены"
+msgstr "Групп масссивов данных не найдено"
 
 #: ckan/templates/snippets/social.html:5
 msgid "Social"
@@ -3630,8 +3650,8 @@ msgstr ""
 
 #: ckan/views/dataset.py:534 ckan/views/dataset.py:829 ckan/views/dataset.py:1085
 #, python-format
-msgid "Unauthorized to read package %s"
-msgstr "Недостаточно прав для просмотра массива с наборами данных %s"
+msgid "Unauthorized to read package"
+msgstr "Нет прав для просмотра этой страницы"
 
 #: ckan/views/dataset.py:581
 msgid "Viewing datasets of type \"{package_type}\" is not supported ({file_!r})."
@@ -3722,8 +3742,8 @@ msgstr "Функциональный пользователь"
 #: ckan/views/group.py:474 ckan/views/group.py:537 ckan/views/group.py:806
 #: ckan/views/group.py:1079 ckan/views/group.py:1263 ckan/views/group.py:1341
 #, python-format
-msgid "Unauthorized to read %s"
-msgstr "Недостаточно прав для просмотра набора данных %s"
+msgid "Unauthorized to read"
+msgstr "Нет прав для просмотра этой страницы"
 
 #: ckan/views/group.py:582
 #, python-format

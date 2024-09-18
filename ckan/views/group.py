@@ -332,15 +332,9 @@ def _read(id: Optional[str], limit: int, group_type: str) -> dict[str, Any]:
 
     facets: "OrderedDict[str, str]" = OrderedDict()
 
-    org_label = h.humanize_entity_type(
-        "organization", h.default_group_type("organization"), "facet label"
-    ) or _("Organizations")
-    group_label = h.humanize_entity_type(
-        "group", h.default_group_type("group"), "facet label"
-    ) or _("Groups")
     default_facet_titles = {
-        "organization": org_label,
-        "groups": group_label,
+        "organization": _("Organizations."),
+        "groups": _("Groups"),
         "tags": _("Tags"),
     }
 
@@ -471,7 +465,7 @@ def read(
     try:
         check_access_to_group(context, {"id": id})
     except NotAuthorized:
-        base.abort(403, _("Unauthorized to read %s") % id)
+        base.abort(403, _("Unauthorized to read"))
     except NotFound:
         base.abort(
             404,
@@ -534,7 +528,7 @@ def about(id: str, group_type: str, is_organization: bool) -> str:
     try:
         check_access_to_group(context, {"id": id})
     except NotAuthorized:
-        base.abort(403, _("Unauthorized to read %s") % id)
+        base.abort(403, _("Unauthorized to read"))
     except NotFound:
         base.abort(404, _("Not found"))
 
@@ -803,7 +797,7 @@ class BulkProcessView(MethodView):
         try:
             check_access_to_group(context, {"id": id})
         except NotAuthorized:
-            base.abort(403, _("Unauthorized to read %s") % id)
+            base.abort(403, _("Unauthorized to read"))
         except NotFound:
             base.abort(404, _("Not found"))
 
@@ -1076,7 +1070,7 @@ class EditGroupView(MethodView):
         try:
             check_access_to_group(context, {"id": id})
         except NotAuthorized:
-            base.abort(403, _("Unauthorized to read %s") % id)
+            base.abort(403, _("Unauthorized to read"))
         except NotFound:
             base.abort(404, _("Organization not found"))
 
@@ -1260,7 +1254,7 @@ class MembersGroupView(MethodView):
         try:
             check_access_to_group(context, {"id": id})
         except NotAuthorized:
-            base.abort(403, _("Unauthorized to read %s") % id)
+            base.abort(403, _("Unauthorized to read"))
         except NotFound:
             base.abort(404, _("Not found"))
 
@@ -1338,7 +1332,7 @@ class MembersGroupView(MethodView):
         try:
             check_access_to_group(context, {"id": id})
         except NotAuthorized:
-            base.abort(403, _("Unauthorized to read %s") % id)
+            base.abort(403, _("Unauthorized to read"))
         except NotFound:
             base.abort(404, _("Not found"))
         group_show = _action("group_show")

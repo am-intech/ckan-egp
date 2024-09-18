@@ -15,9 +15,5 @@
     <div class="wide">
       {% snippet "organization/snippets/organization_list.html", organizations=organizations, show_capacity=True %}
     </div>
-  {% else %}
-    <p class="empty">
-      {{ _('You are not a member of any groups.') }}
-    </p>
   {% endif %}
 {% endblock %}

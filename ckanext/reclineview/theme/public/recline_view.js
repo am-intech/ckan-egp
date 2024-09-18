@@ -11,8 +11,6 @@ this.ckan.module('recline_view', function (jQuery) {
       this.options.resource = JSON.parse(this.options.resource);
       this.options.resourceView = JSON.parse(this.options.resourceView);
       this.el.ready(this._onReady);
-      // hack to make leaflet use a particular location to look for images
-      L.Icon.Default.imagePath = this.options.site_url + 'vendor/leaflet/0.7.7/images';
     },
 
     _onReady: function() {
@@ -41,7 +39,7 @@ this.ckan.module('recline_view', function (jQuery) {
         }
       }
 
-      var errorMsg, dataset, map_config;
+      var errorMsg, dataset;
 
       if (!resourceData.datastore_active) {
           recline.Backend.DataProxy.timeout = 10000;
@@ -55,8 +53,6 @@ this.ckan.module('recline_view', function (jQuery) {
       }
 
       dataset = new recline.Model.Dataset(resourceData);
-
-      map_config = this.options.map_config;
 
       var query = new recline.Model.Query();
       query.set({ size: reclineView.limit || 100 });
@@ -104,25 +100,8 @@ this.ckan.module('recline_view', function (jQuery) {
           "series": [reclineView.series]
         };
         view = new recline.View.Graph({model: dataset, state: state});
-      } else if(reclineView.view_type === "recline_map_view") {
-        state = {
-          geomField: null,
-          latField: null,
-          lonField: null,
-          autoZoom: Boolean(reclineView.auto_zoom),
-          cluster: Boolean(reclineView.cluster_markers)
-        };
-
-        if(reclineView.map_field_type === "geojson") {
-          state.geomField = reclineView.geojson_field;
-        } else {
-          state.latField = reclineView.latitude_field;
-          state.lonField = reclineView.longitude_field;
-        }
-
-        view = new recline.View.Map($.extend(this._reclineMapViewOptions(dataset, this.options.map_config), {state:state}));
-      } else if(reclineView.view_type === "recline_view") {
-        view = this._newDataExplorer(dataset, this.options.map_config);
+      }else if(reclineView.view_type === "recline_view") {
+        view = this._newDataExplorer(dataset);
       } else {
         // default to Grid
         view = new recline.View.SlickGrid({model: dataset});
@@ -149,48 +128,7 @@ this.ckan.module('recline_view', function (jQuery) {
       }
     },
 
-    _reclineMapViewOptions: function(dataset, map_config) {
-      var tile_url, attribution, subdomains;
-      tile_url = attribution = subdomains = '';
-
-      if (map_config.type == 'mapbox') {
-          // MapBox base map
-          if (!map_config['mapbox.map_id'] || !map_config['mapbox.access_token']) {
-            throw '[CKAN Map Widgets] You need to provide a map ID ' +
-                  '([account].[handle]) and an access token when using a ' +
-                  'MapBox layer. See ' +
-                  'http://www.mapbox.com/developers/api-overview/ for details';
-          }
-          tile_url = '//{s}.tiles.mapbox.com/v4/' +
-                     map_config['mapbox.map_id'] +
-                     '/{z}/{x}/{y}.png?access_token=' +
-                     map_config['mapbox.access_token'];
-          handle = map_config['mapbox.map_id'];
-          subdomains = map_config.subdomains || 'abcd';
-          attribution = map_config.attribution ||
-                        'Data: <a href="http://osm.org/copyright" ' +
-                        'target="_blank">OpenStreetMap</a>, Design: <a ' +
-                        'href="http://mapbox.com/about/maps" ' +
-                        'target="_blank">MapBox</a>';
-      } else if (map_config.type == 'custom') {
-          // Custom XYZ layer
-          tile_url = map_config['custom.url'] || '';
-          attribution = map_config.attribution || '';
-          subdomains = map_config.subdomains || '';
-
-          if (map_config['custom.tms'])
-            var tms = map_config['custom.tms'];
-      }
-
-      return {
-        model: dataset,
-        mapTilesURL: tile_url,
-        mapTilesAttribution: attribution,
-        mapTilesSubdomains: subdomains
-      };
-    },
-
-    _newDataExplorer: function (dataset, map_config) {
+    _newDataExplorer: function (dataset) {
       var views = [
         {
           id: 'grid',
@@ -206,11 +144,6 @@ this.ckan.module('recline_view', function (jQuery) {
             model: dataset
           })
         },
-        {
-          id: 'map',
-          label: this._('Map'),
-          view: new recline.View.Map(this._reclineMapViewOptions(dataset, map_config))
-        }
       ];
 
       var sidebarViews = [

@@ -71,13 +71,9 @@ def index() -> str:
     g.package_count = query['count']
     g.datasets = query['results']
 
-    org_label = h.humanize_entity_type('organization', h.default_group_type('organization'), 'facet label') or _('Organizations')
-
-    group_label = h.humanize_entity_type('group', h.default_group_type('group'), 'facet label') or _('Groups')
-
     g.facet_titles = {
-        'organization': org_label,
-        'groups': group_label,
+        'organization': _('Organizations.'),
+        'groups': _('Groups'),
         'tags': _('Tags'),
     }
     extra_vars['search_facets'] = query['search_facets']

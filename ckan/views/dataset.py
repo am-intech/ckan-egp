@@ -300,18 +300,10 @@ def search(package_type: str) -> str:
 
     facets: dict[str, str] = OrderedDict()
 
-    org_label = h.humanize_entity_type(
-        "organization", h.default_group_type("organization"), "facet label"
-    ) or _("Organizations")
-    group_label = h.humanize_entity_type(
-        "group", h.default_group_type("group"), "facet label"
-    ) or _("Groups")
-
     default_facet_titles = {
-        "organization": org_label,
-        "groups": group_label,
-        "tags": _("Tags"),
-        "res_format": _("Formats"),
+        "organization": _("Organizations."),
+        "groups": _("Groups"),
+        "tags": _("Tags")
     }
 
     for facet in h.facets():
@@ -325,6 +317,11 @@ def search(package_type: str) -> str:
         facets = plugin.dataset_facets(facets, package_type)
 
     extra_vars["facet_titles"] = facets
+    extra_vars["facet_titles_alt"] = {
+        "organization": _("Organizations!"),
+        "groups": _("Groups!"),
+        "tags": _("Tags!")
+    }
     data_dict: dict[str, Any] = {
         "q": q,
         "fq": fq.strip(),
@@ -531,7 +528,7 @@ def read(package_type: str, id: str) -> Union[Response, str]:
         )
     except NotAuthorized:
         if current_user.is_authenticated:
-            return base.abort(403, _("Unauthorized to read package %s") % id)
+            return base.abort(403, _("Unauthorized to read package"))
         else:
             return h.redirect_to(
                 "user.login",
@@ -826,7 +823,7 @@ class EditView(MethodView):
                 pkg_dict["name"], "edit", package_type=package_type
             )
         except NotAuthorized:
-            return base.abort(403, _("Unauthorized to read package %s") % id)
+            return base.abort(403, _("Unauthorized to read package"))
         except NotFound:
             return base.abort(404, _("Dataset not found"))
         except SearchIndexError as e:
@@ -1082,7 +1079,7 @@ def followers(
     except NotFound:
         return base.abort(404, _("Dataset not found"))
     except NotAuthorized:
-        return base.abort(403, _("Unauthorized to read package %s") % id)
+        return base.abort(403, _("Unauthorized to read package"))
 
     # TODO: remove
     g.pkg_dict = pkg_dict

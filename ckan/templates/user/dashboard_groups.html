@@ -15,9 +15,5 @@
     <div class="wide">
       {% snippet "group/snippets/group_list.html", groups=groups %}
     </div>
-  {% else %}
-    <p class="empty">
-      {{ _('You are not a member of any groups.') }}
-    </p>
   {% endif %}
 {% endblock %}

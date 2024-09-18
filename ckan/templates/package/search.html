@@ -73,7 +73,7 @@
   <div class="filters">
     <div>
       {% for facet in facet_titles %}
-        {{ h.snippet('snippets/facet_list.html', title=facet_titles[facet], name=facet, search_facets=search_facets) }}
+        {{ h.snippet('snippets/facet_list.html', title=facet_titles[facet], name=facet, search_facets=search_facets, title_alt=facet_titles_alt[facet]) }}
       {% endfor %}
     </div>
     <a class="close no-text hide-filters"><i class="fa fa-times-circle"></i><span class="text">close</span></a>
